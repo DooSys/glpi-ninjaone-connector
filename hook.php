@@ -22,6 +22,8 @@ function plugin_ninjaone_install(): bool
             `refresh_token` text NULL,
             `token_expires_at` timestamp NULL DEFAULT NULL,
             `oauth_state` varchar(128) NULL,
+            `organization_mode` varchar(20) NOT NULL DEFAULT 'multi',
+            `single_ninjaone_organization_id` bigint unsigned NULL,
             `is_active` tinyint NOT NULL DEFAULT 0,
             `last_token_refresh` timestamp NULL DEFAULT NULL,
             `created_at` timestamp NULL DEFAULT NULL,
@@ -159,6 +161,8 @@ function plugin_ninjaone_install(): bool
             'refresh_token'    => "text NULL",
             'token_expires_at' => "timestamp NULL DEFAULT NULL",
             'oauth_state'      => "varchar(128) NULL",
+            'organization_mode' => "varchar(20) NOT NULL DEFAULT 'multi'",
+            'single_ninjaone_organization_id' => "bigint unsigned NULL",
         ];
 
         foreach ($fields as $field => $definition) {

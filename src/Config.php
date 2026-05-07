@@ -111,6 +111,8 @@ class Config extends CommonDBTM
 
     private function normalizeInput(array $input): array
     {
+        unset($input['single_entities_id']);
+
         $input['updated_at'] = date('Y-m-d H:i:s');
 
         if (!isset($input['id'])) {
@@ -127,6 +129,19 @@ class Config extends CommonDBTM
 
         if (array_key_exists('redirect_uri', $input) && $input['redirect_uri'] === '') {
             $input['redirect_uri'] = $this->getDefaultRedirectUri();
+        }
+
+        if (isset($input['organization_mode']) && !in_array($input['organization_mode'], ['single', 'multi'], true)) {
+            $input['organization_mode'] = 'multi';
+        }
+
+        if (($input['organization_mode'] ?? 'multi') === 'multi') {
+            $input['single_ninjaone_organization_id'] = null;
+        }
+
+        if (array_key_exists('single_ninjaone_organization_id', $input)
+            && (string) $input['single_ninjaone_organization_id'] === '') {
+            $input['single_ninjaone_organization_id'] = null;
         }
 
         return $input;

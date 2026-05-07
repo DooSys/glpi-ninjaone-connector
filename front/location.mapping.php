@@ -150,16 +150,24 @@ echo '<div class="card">';
 echo '<div class="card-header d-flex justify-content-between align-items-center">';
 echo '<h3 class="card-title mb-0">' . __('NinjaOne location mappings', 'ninjaone') . '</h3>';
 echo '<div class="d-flex gap-2">';
-echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . $config_id . '">' . __('Map organizations', 'ninjaone') . '</a>';
+if (($config->fields['organization_mode'] ?? 'multi') === 'multi') {
+    echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . $config_id . '">' . __('Map organizations', 'ninjaone') . '</a>';
+}
 echo '<a class="btn btn-outline-secondary" href="' . Config::getFormURLWithID($config_id) . '">' . __('Back') . '</a>';
 echo '</div>';
 echo '</div>';
 
 echo '<div class="list-group list-group-flush">';
 
+$where = ['plugin_ninjaone_configs_id' => $config_id];
+if (($config->fields['organization_mode'] ?? 'multi') === 'single'
+    && (int) ($config->fields['single_ninjaone_organization_id'] ?? 0) > 0) {
+    $where['ninjaone_organization_id'] = (int) $config->fields['single_ninjaone_organization_id'];
+}
+
 $rows = $DB->request([
     'FROM'  => 'glpi_plugin_ninjaone_locationmappings',
-    'WHERE' => ['plugin_ninjaone_configs_id' => $config_id],
+    'WHERE' => $where,
     'ORDER' => ['ninjaone_organization_id', 'ninjaone_location_name'],
 ]);
 
@@ -240,7 +248,9 @@ if ($count === 0) {
 echo '</div>';
 
 echo '<div class="card-footer d-flex gap-2">';
-echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . $config_id . '">' . __('Map organizations', 'ninjaone') . '</a>';
+if (($config->fields['organization_mode'] ?? 'multi') === 'multi') {
+    echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . $config_id . '">' . __('Map organizations', 'ninjaone') . '</a>';
+}
 echo '<a class="btn btn-outline-secondary" href="' . Config::getFormURLWithID($config_id) . '">' . __('Cancel') . '</a>';
 echo '</div>';
 

@@ -10,6 +10,77 @@ Session::checkRight('config', UPDATE);
 
 $config = new Config();
 
+function plugin_ninjaone_get_entities_for_select(): array
+{
+    global $DB;
+
+    $entities = [];
+    $rows = $DB->request([
+        'SELECT' => ['id', 'completename'],
+        'FROM'   => 'glpi_entities',
+        'ORDER'  => 'completename',
+    ]);
+    foreach ($rows as $row) {
+        $entities[(int) $row['id']] = (string) $row['completename'];
+    }
+
+    return $entities;
+}
+
+function plugin_ninjaone_get_organizations_for_select(int $config_id): array
+{
+    global $DB;
+
+    $organizations = [];
+    $rows = $DB->request([
+        'SELECT' => ['ninjaone_organization_id', 'ninjaone_organization_name', 'entities_id'],
+        'FROM'   => 'glpi_plugin_ninjaone_organizationmappings',
+        'WHERE'  => ['plugin_ninjaone_configs_id' => $config_id],
+        'ORDER'  => 'ninjaone_organization_name',
+    ]);
+    foreach ($rows as $row) {
+        $organizations[(int) $row['ninjaone_organization_id']] = $row;
+    }
+
+    return $organizations;
+}
+
+function plugin_ninjaone_apply_single_organization_mode(int $config_id, array $input): void
+{
+    global $DB;
+
+    $mode = (string) ($input['organization_mode'] ?? 'multi');
+    if ($mode !== 'single') {
+        return;
+    }
+
+    $organization_id = (int) ($input['single_ninjaone_organization_id'] ?? 0);
+    $submitted_entity = (string) ($input['single_entities_id'] ?? '');
+    $entities_id = $submitted_entity === '' ? null : (int) $submitted_entity;
+
+    $DB->update(
+        'glpi_plugin_ninjaone_organizationmappings',
+        ['sync_enabled' => 0],
+        ['plugin_ninjaone_configs_id' => $config_id]
+    );
+
+    if ($organization_id <= 0 || $entities_id === null) {
+        return;
+    }
+
+    $DB->update(
+        'glpi_plugin_ninjaone_organizationmappings',
+        [
+            'entities_id'  => $entities_id,
+            'sync_enabled' => 1,
+        ],
+        [
+            'plugin_ninjaone_configs_id' => $config_id,
+            'ninjaone_organization_id'   => $organization_id,
+        ]
+    );
+}
+
 if (isset($_POST['test_connection'])) {
     if ($config->getFromDB((int) $_POST['id'])) {
         try {
@@ -68,6 +139,7 @@ if (isset($_POST['add'])) {
 
 if (isset($_POST['update'])) {
     $config->update($_POST);
+    plugin_ninjaone_apply_single_organization_mode((int) $_POST['id'], $_POST);
     Html::back();
 }
 
@@ -90,7 +162,25 @@ if ($id > 0) {
         'redirect_uri'  => Config::getDefaultRedirectUri(),
         'refresh_token' => '',
         'is_active'     => 1,
+        'organization_mode' => 'multi',
+        'single_ninjaone_organization_id' => null,
     ];
+}
+
+$organizations = (int) ($config->fields['id'] ?? 0) > 0
+    ? plugin_ninjaone_get_organizations_for_select((int) $config->fields['id'])
+    : [];
+$entities = plugin_ninjaone_get_entities_for_select();
+$organization_mode = (string) ($config->fields['organization_mode'] ?? 'multi');
+if (!in_array($organization_mode, ['single', 'multi'], true)) {
+    $organization_mode = 'multi';
+}
+$single_organization_id = (int) ($config->fields['single_ninjaone_organization_id'] ?? 0);
+$single_entity_id = null;
+if ($single_organization_id > 0 && isset($organizations[$single_organization_id])) {
+    $single_entity_id = $organizations[$single_organization_id]['entities_id'] === null
+        ? null
+        : (int) $organizations[$single_organization_id]['entities_id'];
 }
 
 Html::header(
@@ -160,6 +250,55 @@ echo '<input class="form-control" type="text" name="redirect_uri" value="' . htm
 echo '</div>';
 
 if ((int) ($config->fields['id'] ?? 0) > 0) {
+    echo '<div class="col-md-12">';
+    echo '<div class="border rounded p-3">';
+    echo '<h4 class="mb-3">' . __('Organization management', 'ninjaone') . '</h4>';
+
+    echo '<div class="row g-3">';
+    echo '<div class="col-md-4">';
+    echo '<label class="form-label">' . __('Organization mode', 'ninjaone') . '</label>';
+    echo '<select class="form-select" name="organization_mode">';
+    echo '<option value="single"' . ($organization_mode === 'single' ? ' selected' : '') . '>' . __('Single organization', 'ninjaone') . '</option>';
+    echo '<option value="multi"' . ($organization_mode === 'multi' ? ' selected' : '') . '>' . __('Multi organization', 'ninjaone') . '</option>';
+    echo '</select>';
+    echo '</div>';
+
+    echo '<div class="col-md-4">';
+    echo '<label class="form-label">' . __('NinjaOne organization', 'ninjaone') . '</label>';
+    echo '<select class="form-select" name="single_ninjaone_organization_id">';
+    echo '<option value="">' . __('Select organization', 'ninjaone') . '</option>';
+    foreach ($organizations as $organization_id => $organization) {
+        echo '<option value="' . $organization_id . '"'
+            . ($single_organization_id === $organization_id ? ' selected' : '')
+            . '>' . htmlspecialchars((string) $organization['ninjaone_organization_name'], ENT_QUOTES, 'UTF-8') . '</option>';
+    }
+    echo '</select>';
+    echo '</div>';
+
+    echo '<div class="col-md-4">';
+    echo '<label class="form-label">' . __('GLPI entity', 'ninjaone') . '</label>';
+    echo '<select class="form-select" name="single_entities_id">';
+    echo '<option value="">' . __('Select entity', 'ninjaone') . '</option>';
+    foreach ($entities as $entity_id => $entity_name) {
+        echo '<option value="' . $entity_id . '"'
+            . ($single_entity_id !== null && $single_entity_id === $entity_id ? ' selected' : '')
+            . '>' . htmlspecialchars($entity_name, ENT_QUOTES, 'UTF-8') . '</option>';
+    }
+    echo '</select>';
+    echo '</div>';
+    echo '</div>';
+
+    if ($organizations === []) {
+        echo '<div class="alert alert-info mt-3 mb-0">' . __('Run a synchronization once to discover NinjaOne organizations.', 'ninjaone') . '</div>';
+    } elseif ($organization_mode === 'multi') {
+        echo '<div class="mt-3">';
+        echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map organizations', 'ninjaone') . '</a>';
+        echo '</div>';
+    }
+
+    echo '</div>';
+    echo '</div>';
+
     $has_secret = !empty($config->fields['client_secret']);
     echo '<div class="col-md-12">';
     echo '<div class="alert ' . ($has_secret ? 'alert-success' : 'alert-warning') . ' mb-0">';
@@ -178,7 +317,9 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
     echo '<button class="btn btn-primary" type="submit" name="update" value="1">' . _x('button', 'Save') . '</button>';
     echo '<button class="btn btn-secondary" type="submit" name="test_connection" value="1">' . __('Test NinjaOne connection', 'ninjaone') . '</button>';
     echo '<button class="btn btn-secondary" type="submit" name="run_sync" value="1">' . __('Run NinjaOne synchronization', 'ninjaone') . '</button>';
-    echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map organizations', 'ninjaone') . '</a>';
+    if ($organization_mode === 'multi') {
+        echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map organizations', 'ninjaone') . '</a>';
+    }
     echo '<a class="btn btn-outline-primary" href="location.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map locations', 'ninjaone') . '</a>';
     echo '<a class="btn btn-outline-secondary" href="device.payload.php?config_id=' . (int) $config->fields['id'] . '">' . __('Inspect device payloads', 'ninjaone') . '</a>';
     echo '<a class="btn btn-outline-secondary" href="synclog.php?config_id=' . (int) $config->fields['id'] . '">' . __('Logs') . '</a>';
