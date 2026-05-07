@@ -55,6 +55,101 @@ final class NinjaOneClient
         return $this->getPaginated('/api/v2/devices-detailed', 1000, $query);
     }
 
+    public function getDevice(int $deviceId): array
+    {
+        return $this->request('GET', sprintf('/api/v2/device/%d', $deviceId));
+    }
+
+    public function listDeviceJobs(int $deviceId): array
+    {
+        return $this->request('GET', sprintf('/api/v2/device/%d/jobs', $deviceId));
+    }
+
+    public function listDeviceActivities(int $deviceId): array
+    {
+        return $this->getPaginated(sprintf('/api/v2/device/%d/activities', $deviceId));
+    }
+
+    public function listDeviceAlerts(int $deviceId): array
+    {
+        return $this->getPaginated(sprintf('/api/v2/device/%d/alerts', $deviceId));
+    }
+
+    public function listDeviceDisks(int $deviceId): array
+    {
+        return $this->request('GET', sprintf('/api/v2/device/%d/disks', $deviceId));
+    }
+
+    public function listDeviceOsPatchInstalls(int $deviceId): array
+    {
+        return $this->getPaginated(sprintf('/api/v2/device/%d/os-patch-installs', $deviceId));
+    }
+
+    public function listDeviceSoftwarePatchInstalls(int $deviceId): array
+    {
+        return $this->getPaginated(sprintf('/api/v2/device/%d/software-patch-installs', $deviceId));
+    }
+
+    public function getDeviceLastLoggedOnUser(int $deviceId): array
+    {
+        return $this->request('GET', sprintf('/api/v2/device/%d/last-logged-on-user', $deviceId));
+    }
+
+    public function listDeviceNetworkInterfaces(int $deviceId): array
+    {
+        return $this->request('GET', sprintf('/api/v2/device/%d/network-interfaces', $deviceId));
+    }
+
+    public function listDeviceOsPatches(int $deviceId): array
+    {
+        return $this->getPaginated(sprintf('/api/v2/device/%d/os-patches', $deviceId));
+    }
+
+    public function listDeviceSoftwarePatches(int $deviceId): array
+    {
+        return $this->getPaginated(sprintf('/api/v2/device/%d/software-patches', $deviceId));
+    }
+
+    public function listDeviceProcessors(int $deviceId): array
+    {
+        return $this->request('GET', sprintf('/api/v2/device/%d/processors', $deviceId));
+    }
+
+    public function listDeviceWindowsServices(int $deviceId): array
+    {
+        return $this->getPaginated(sprintf('/api/v2/device/%d/windows-services', $deviceId));
+    }
+
+    public function listDeviceSoftware(int $deviceId): array
+    {
+        return $this->getPaginated(sprintf('/api/v2/device/%d/software', $deviceId));
+    }
+
+    public function listDeviceVolumes(int $deviceId): array
+    {
+        return $this->request('GET', sprintf('/api/v2/device/%d/volumes', $deviceId));
+    }
+
+    public function listDeviceCustomFields(int $deviceId): array
+    {
+        return $this->request('GET', sprintf('/api/v2/device/%d/custom-fields', $deviceId));
+    }
+
+    public function getDevicePolicyOverrides(int $deviceId): array
+    {
+        return $this->request('GET', sprintf('/api/v2/device/%d/policy/overrides', $deviceId));
+    }
+
+    public function listQuery(string $queryName, array $query = []): array
+    {
+        return $this->getCursorPaginated('/api/v2/queries/' . ltrim($queryName, '/'), 1000, $query);
+    }
+
+    public function listQueryForDeviceFilter(string $queryName, string $deviceFilter): array
+    {
+        return $this->listQuery($queryName, ['df' => $deviceFilter]);
+    }
+
     public function testConnection(): array
     {
         $token = $this->accessToken = $this->fetchAccessToken();
@@ -88,6 +183,56 @@ final class NinjaOneClient
         } while ($after !== null && count($page) === $pageSize);
 
         return $items;
+    }
+
+    public function getCursorPaginated(string $path, int $pageSize = 1000, array $baseQuery = []): array
+    {
+        $items = [];
+        $cursor = null;
+
+        do {
+            $query = $baseQuery + ['pageSize' => $pageSize];
+            if ($cursor !== null && $cursor !== '') {
+                $query['cursor'] = $cursor;
+            }
+
+            $page = $this->request('GET', $path, $query);
+            $pageItems = $this->extractPageItems($page);
+            if ($pageItems === []) {
+                break;
+            }
+
+            $items = array_merge($items, $pageItems);
+            $cursor = $this->extractNextCursor($page);
+        } while ($cursor !== null && $cursor !== '');
+
+        return $items;
+    }
+
+    private function extractPageItems(array $page): array
+    {
+        foreach (['results', 'data', 'items', 'rows'] as $key) {
+            if (isset($page[$key]) && is_array($page[$key])) {
+                return $page[$key];
+            }
+        }
+
+        if (array_is_list($page)) {
+            return $page;
+        }
+
+        return [];
+    }
+
+    private function extractNextCursor(array $page): ?string
+    {
+        foreach (['cursor', 'nextCursor', 'next_cursor', 'after'] as $key) {
+            if (isset($page[$key]) && is_scalar($page[$key]) && (string) $page[$key] !== '') {
+                return (string) $page[$key];
+            }
+        }
+
+        return null;
     }
 
     public function request(string $method, string $path, array $query = [], ?array $body = null): array
