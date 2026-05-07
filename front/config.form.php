@@ -114,13 +114,17 @@ if (isset($_POST['run_sync'])) {
         try {
             $runner = new SyncRunner();
             $result = $runner->runFullSync($config->fields);
-            Session::addMessageAfterRedirect(sprintf(
+            $message = sprintf(
                 __('NinjaOne synchronization finished: %d created, %d updated, %d skipped, %d errors.', 'ninjaone'),
                 $result->created,
                 $result->updated,
                 $result->skipped,
                 $result->errors
-            ), false, $result->errors > 0 ? WARNING : INFO);
+            );
+            if ($result->messages !== []) {
+                $message .= ' ' . implode(' | ', $result->messages);
+            }
+            Session::addMessageAfterRedirect($message, false, $result->errors > 0 ? WARNING : INFO);
         } catch (Throwable $e) {
             Session::addMessageAfterRedirect(
                 __('NinjaOne synchronization failed: ', 'ninjaone') . $e->getMessage(),
@@ -164,6 +168,8 @@ if ($id > 0) {
         'is_active'     => 1,
         'organization_mode' => 'multi',
         'single_ninjaone_organization_id' => null,
+        'sync_time' => '02:00:00',
+        'sync_repeat_hours' => null,
     ];
 }
 
@@ -245,11 +251,22 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
 echo '</div>';
 
 echo '<div class="col-md-12">';
-echo '<label class="form-label">' . __('Redirect URI', 'ninjaone') . '</label>';
+echo '<label class="form-label">' . __('Redirect URL', 'ninjaone') . '</label>';
 echo '<input class="form-control" type="text" name="redirect_uri" value="' . htmlspecialchars((string) ($config->fields['redirect_uri'] ?? Config::getDefaultRedirectUri()), ENT_QUOTES, 'UTF-8') . '">';
 echo '</div>';
 
 if ((int) ($config->fields['id'] ?? 0) > 0) {
+    $has_secret = !empty($config->fields['client_secret']);
+    echo '<div class="col-md-12">';
+    echo '<div class="alert ' . ($has_secret ? 'alert-success' : 'alert-warning') . ' mb-0">';
+    echo $has_secret
+        ? __('NinjaOne machine-to-machine credentials are configured.', 'ninjaone')
+        : __('NinjaOne client secret is missing. Create a Services API client with Client Credentials.', 'ninjaone');
+    echo '</div>';
+    echo '</div>';
+
+    echo '<div class="col-md-12"><hr class="my-1"></div>';
+
     echo '<div class="col-md-12">';
     echo '<div class="border rounded p-3">';
     echo '<h4 class="mb-3">' . __('Organization management', 'ninjaone') . '</h4>';
@@ -263,29 +280,31 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
     echo '</select>';
     echo '</div>';
 
-    echo '<div class="col-md-4">';
-    echo '<label class="form-label">' . __('NinjaOne organization', 'ninjaone') . '</label>';
-    echo '<select class="form-select" name="single_ninjaone_organization_id">';
-    echo '<option value="">' . __('Select organization', 'ninjaone') . '</option>';
-    foreach ($organizations as $organization_id => $organization) {
-        echo '<option value="' . $organization_id . '"'
-            . ($single_organization_id === $organization_id ? ' selected' : '')
-            . '>' . htmlspecialchars((string) $organization['ninjaone_organization_name'], ENT_QUOTES, 'UTF-8') . '</option>';
-    }
-    echo '</select>';
-    echo '</div>';
+    if ($organization_mode === 'single') {
+        echo '<div class="col-md-4">';
+        echo '<label class="form-label">' . __('NinjaOne organization', 'ninjaone') . '</label>';
+        echo '<select class="form-select" name="single_ninjaone_organization_id">';
+        echo '<option value="">' . __('Select organization', 'ninjaone') . '</option>';
+        foreach ($organizations as $organization_id => $organization) {
+            echo '<option value="' . $organization_id . '"'
+                . ($single_organization_id === $organization_id ? ' selected' : '')
+                . '>' . htmlspecialchars((string) $organization['ninjaone_organization_name'], ENT_QUOTES, 'UTF-8') . '</option>';
+        }
+        echo '</select>';
+        echo '</div>';
 
-    echo '<div class="col-md-4">';
-    echo '<label class="form-label">' . __('GLPI entity', 'ninjaone') . '</label>';
-    echo '<select class="form-select" name="single_entities_id">';
-    echo '<option value="">' . __('Select entity', 'ninjaone') . '</option>';
-    foreach ($entities as $entity_id => $entity_name) {
-        echo '<option value="' . $entity_id . '"'
-            . ($single_entity_id !== null && $single_entity_id === $entity_id ? ' selected' : '')
-            . '>' . htmlspecialchars($entity_name, ENT_QUOTES, 'UTF-8') . '</option>';
+        echo '<div class="col-md-4">';
+        echo '<label class="form-label">' . __('GLPI entity', 'ninjaone') . '</label>';
+        echo '<select class="form-select" name="single_entities_id">';
+        echo '<option value="">' . __('Select entity', 'ninjaone') . '</option>';
+        foreach ($entities as $entity_id => $entity_name) {
+            echo '<option value="' . $entity_id . '"'
+                . ($single_entity_id !== null && $single_entity_id === $entity_id ? ' selected' : '')
+                . '>' . htmlspecialchars($entity_name, ENT_QUOTES, 'UTF-8') . '</option>';
+        }
+        echo '</select>';
+        echo '</div>';
     }
-    echo '</select>';
-    echo '</div>';
     echo '</div>';
 
     if ($organizations === []) {
@@ -299,12 +318,29 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
     echo '</div>';
     echo '</div>';
 
-    $has_secret = !empty($config->fields['client_secret']);
     echo '<div class="col-md-12">';
-    echo '<div class="alert ' . ($has_secret ? 'alert-success' : 'alert-warning') . ' mb-0">';
-    echo $has_secret
-        ? __('NinjaOne machine-to-machine credentials are configured.', 'ninjaone')
-        : __('NinjaOne client secret is missing. Create a Services API client with Client Credentials.', 'ninjaone');
+    echo '<div class="border rounded p-3">';
+    echo '<h4 class="mb-3">' . __('Scheduling', 'ninjaone') . '</h4>';
+    echo '<div class="row g-3 align-items-end">';
+    echo '<div class="col-md-4">';
+    echo '<label class="form-label">' . __('Run at', 'ninjaone') . '</label>';
+    $sync_time = substr((string) ($config->fields['sync_time'] ?? '02:00:00'), 0, 5);
+    echo '<input class="form-control" type="time" name="sync_time" value="' . htmlspecialchars($sync_time, ENT_QUOTES, 'UTF-8') . '">';
+    echo '</div>';
+    echo '<div class="col-md-4">';
+    echo '<label class="form-label">' . __('Repeat every', 'ninjaone') . '</label>';
+    echo '<div class="input-group">';
+    echo '<input class="form-control" type="number" min="1" step="1" name="sync_repeat_hours" value="' . htmlspecialchars((string) ($config->fields['sync_repeat_hours'] ?? ''), ENT_QUOTES, 'UTF-8') . '">';
+    echo '<span class="input-group-text">' . __('hours', 'ninjaone') . '</span>';
+    echo '</div>';
+    echo '<div class="form-text">' . __('Leave empty to run once per day at the configured time.', 'ninjaone') . '</div>';
+    echo '</div>';
+    echo '<div class="col-md-4">';
+    echo '<div class="form-text">';
+    echo __('The GLPI automatic action NinjaoneSync runs from GLPI cron and applies this schedule.', 'ninjaone');
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
     echo '</div>';
     echo '</div>';
 }

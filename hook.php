@@ -24,6 +24,9 @@ function plugin_ninjaone_install(): bool
             `oauth_state` varchar(128) NULL,
             `organization_mode` varchar(20) NOT NULL DEFAULT 'multi',
             `single_ninjaone_organization_id` bigint unsigned NULL,
+            `sync_time` time NULL DEFAULT '02:00:00',
+            `sync_repeat_hours` int unsigned NULL,
+            `last_scheduled_sync_at` timestamp NULL DEFAULT NULL,
             `is_active` tinyint NOT NULL DEFAULT 0,
             `last_token_refresh` timestamp NULL DEFAULT NULL,
             `created_at` timestamp NULL DEFAULT NULL,
@@ -163,6 +166,9 @@ function plugin_ninjaone_install(): bool
             'oauth_state'      => "varchar(128) NULL",
             'organization_mode' => "varchar(20) NOT NULL DEFAULT 'multi'",
             'single_ninjaone_organization_id' => "bigint unsigned NULL",
+            'sync_time' => "time NULL DEFAULT '02:00:00'",
+            'sync_repeat_hours' => "int unsigned NULL",
+            'last_scheduled_sync_at' => "timestamp NULL DEFAULT NULL",
         ];
 
         foreach ($fields as $field => $definition) {
@@ -185,7 +191,7 @@ function plugin_ninjaone_install(): bool
         $DB->update('glpi_plugin_ninjaone_organizationmappings', ['sync_enabled' => 0], ['entities_id' => null]);
     }
 
-    CronTask::Register('GlpiPlugin\\Ninjaone\\Cron\\NinjaOneSync', 'NinjaoneSync', DAY_TIMESTAMP, [
+    CronTask::Register('GlpiPlugin\\Ninjaone\\Cron\\NinjaOneSync', 'NinjaoneSync', HOUR_TIMESTAMP, [
         'mode' => CronTask::MODE_EXTERNAL,
     ]);
 

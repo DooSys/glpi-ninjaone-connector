@@ -144,7 +144,29 @@ class Config extends CommonDBTM
             $input['single_ninjaone_organization_id'] = null;
         }
 
+        if (array_key_exists('sync_time', $input)) {
+            $input['sync_time'] = $this->normalizeSyncTime((string) $input['sync_time']);
+        }
+
+        if (array_key_exists('sync_repeat_hours', $input)) {
+            $repeat = trim((string) $input['sync_repeat_hours']);
+            $input['sync_repeat_hours'] = $repeat === '' ? null : max(1, (int) $repeat);
+        }
+
         return $input;
+    }
+
+    private function normalizeSyncTime(string $time): string
+    {
+        $time = trim($time);
+        if (preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/', $time) === 1) {
+            return $time . ':00';
+        }
+        if (preg_match('/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/', $time) === 1) {
+            return $time;
+        }
+
+        return '02:00:00';
     }
 
     public static function getDefaultRedirectUri(): string

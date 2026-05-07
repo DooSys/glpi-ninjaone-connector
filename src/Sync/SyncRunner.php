@@ -121,6 +121,11 @@ final class SyncRunner
     {
         global $DB;
 
+        $message = implode("\n", $result->messages);
+        if (strlen($message) > 60000) {
+            $message = substr($message, 0, 60000) . "\n[log truncated]";
+        }
+
         $DB->insert('glpi_plugin_ninjaone_synclogs', [
             'plugin_ninjaone_configs_id' => $configId > 0 ? $configId : null,
             'started_at'     => $startedAt,
@@ -131,7 +136,7 @@ final class SyncRunner
             'updated_count' => $result->updated,
             'skipped_count' => $result->skipped,
             'error_count'   => $result->errors,
-            'message'       => implode("\n", $result->messages),
+            'message'       => $message,
         ]);
     }
 
@@ -431,10 +436,15 @@ final class SyncRunner
             'serialNumber',
             'serial',
             'biosSerialNumber',
+            'assetSerialNumber',
             'system.serialNumber',
             'system.serial',
             'hardware.serialNumber',
             'hardware.serial',
+            'system.biosSerialNumber',
+            'system.assetSerialNumber',
+            'ninjaone_reports.computer-systems.0.serialNumber',
+            'ninjaone_reports.computer-systems.0.biosSerialNumber',
         ]);
         if ($serial !== '') {
             $matches = $DB->request([
@@ -472,14 +482,20 @@ final class SyncRunner
             'serialNumber',
             'serial',
             'biosSerialNumber',
+            'assetSerialNumber',
             'system.serialNumber',
             'system.serial',
             'hardware.serialNumber',
             'hardware.serial',
+            'system.biosSerialNumber',
+            'system.assetSerialNumber',
+            'ninjaone_reports.computer-systems.0.serialNumber',
+            'ninjaone_reports.computer-systems.0.biosSerialNumber',
         ]);
 
         $uuid = $this->extractFirstString($device, [
             'uuid',
+            'uid',
             'systemUuid',
             'system.uuid',
             'hardware.uuid',
@@ -506,6 +522,7 @@ final class SyncRunner
             'system.assetTag',
             'hardware.assetTag',
             'chassis.assetTag',
+            'system.assetSerialNumber',
         ]);
         if ($inventoryNumber !== '') {
             $this->addComputerFieldIfExists($input, 'otherserial', $inventoryNumber);
@@ -547,43 +564,79 @@ final class SyncRunner
             'operatingSystem',
             'operatingSystem.name',
             'operatingSystemName',
+            'ninjaone_reports.operating-systems.0.name',
         ]);
         $osVersion = $this->extractFirstString($device, [
             'os.version',
             'osVersion',
             'operatingSystem.version',
             'operatingSystemVersion',
+            'os.buildNumber',
+            'os.releaseId',
+            'ninjaone_reports.operating-systems.0.buildNumber',
+            'ninjaone_reports.operating-systems.0.releaseId',
         ]);
         $architecture = $this->extractFirstString($device, [
             'os.architecture',
             'osArchitecture',
             'architecture',
             'system.architecture',
+            'ninjaone_reports.operating-systems.0.architecture',
         ]);
         $processor = $this->extractFirstString($device, [
             'processor',
             'cpu',
             'processors.0.name',
+            'ninjaone_reports.processors.0.name',
             'hardware.processor',
         ]);
         $memory = $this->extractFirstString($device, [
             'memory',
             'totalMemory',
+            'memory.capacity',
+            'totalPhysicalMemory',
+            'system.totalPhysicalMemory',
             'memory.total',
             'hardware.memory',
+            'ninjaone_reports.computer-systems.0.totalPhysicalMemory',
         ]);
         $ipAddress = $this->extractFirstString($device, [
             'ipAddress',
             'lastIpAddress',
             'publicIP',
             'publicIp',
+            'ipAddresses.0',
             'networkInterfaces.0.ipAddress',
             'networkAdapters.0.ipAddress',
+            'ninjaone_reports.network-interfaces.0.ipAddress.0',
         ]);
         $macAddress = $this->extractFirstString($device, [
             'macAddress',
+            'macAddresses.0',
             'networkInterfaces.0.macAddress',
             'networkAdapters.0.macAddress',
+            'ninjaone_reports.network-interfaces.0.macAddress.0',
+        ]);
+        $domain = $this->extractFirstString($device, [
+            'system.domain',
+            'domain',
+            'ninjaone_reports.computer-systems.0.domain',
+        ]);
+        $domainRole = $this->extractFirstString($device, [
+            'system.domainRole',
+            'domainRole',
+            'ninjaone_reports.computer-systems.0.domainRole',
+        ]);
+        $chassisType = $this->extractFirstString($device, [
+            'system.chassisType',
+            'chassisType',
+            'ninjaone_reports.computer-systems.0.chassisType',
+        ]);
+        $lastBoot = $this->timestampToSqlDate($this->getPathValue($device, 'os.lastBootTime') ?? $this->getPathValue($device, 'ninjaone_reports.operating-systems.0.lastBootTime'));
+        $lastLoggedInUser = $this->extractFirstString($device, [
+            'lastLoggedInUser',
+            'lastLoggedOnUser',
+            'ninjaone_reports.logged-on-users.0.userName',
         ]);
 
         if ($manufacturer !== '') {
@@ -605,13 +658,28 @@ final class SyncRunner
             $lines[] = 'Processor: ' . $processor;
         }
         if ($memory !== '') {
-            $lines[] = 'Memory: ' . $memory;
+            $lines[] = 'Memory: ' . $this->formatBytesForComment($memory);
         }
         if ($ipAddress !== '') {
             $lines[] = 'IP address: ' . $ipAddress;
         }
         if ($macAddress !== '') {
             $lines[] = 'MAC address: ' . $macAddress;
+        }
+        if ($domain !== '') {
+            $lines[] = 'Domain: ' . $domain;
+        }
+        if ($domainRole !== '') {
+            $lines[] = 'Domain role: ' . $domainRole;
+        }
+        if ($chassisType !== '') {
+            $lines[] = 'Chassis type: ' . $chassisType;
+        }
+        if ($lastBoot !== null) {
+            $lines[] = 'Last boot: ' . $lastBoot;
+        }
+        if ($lastLoggedInUser !== '') {
+            $lines[] = 'Last logged in user: ' . $lastLoggedInUser;
         }
 
         return implode("\n", array_filter($lines, static fn (string $line): bool => trim($line) !== ''));
@@ -640,6 +708,8 @@ final class SyncRunner
             'hardware.manufacturer',
             'bios.manufacturer',
             'chassis.manufacturer',
+            'computerSystem.manufacturer',
+            'ninjaone_reports.computer-systems.0.manufacturer',
         ]);
     }
 
@@ -650,6 +720,8 @@ final class SyncRunner
             'system.model',
             'hardware.model',
             'chassis.model',
+            'computerSystem.model',
+            'ninjaone_reports.computer-systems.0.model',
             'references.role.name',
         ]);
     }
@@ -658,10 +730,14 @@ final class SyncRunner
     {
         $candidate = $this->extractFirstString($device, [
             'chassis.type',
+            'chassisType',
+            'system.chassisType',
+            'computerSystem.chassisType',
             'system.type',
             'hardware.type',
             'deviceType',
             'nodeClass',
+            'ninjaone_reports.computer-systems.0.chassisType',
         ]);
 
         $normalized = strtoupper(str_replace([' ', '-'], '_', $candidate));
@@ -755,6 +831,7 @@ final class SyncRunner
         }
 
         $osName = $this->extractFirstString($device, [
+            'name',
             'os.name',
             'osName',
             'os',
@@ -777,17 +854,27 @@ final class SyncRunner
             'osVersion',
             'operatingSystem.version',
             'operatingSystemVersion',
+            'releaseId',
+            'buildNumber',
+            'os.buildNumber',
+            'os.releaseId',
+            'ninjaone_reports.operating-systems.0.buildNumber',
+            'ninjaone_reports.operating-systems.0.releaseId',
         ])), 'glpi_items_operatingsystems');
         $this->addRelationFieldIfExists($data, 'operatingsystemarchitectures_id', $this->getOrCreateDropdownId('OperatingSystemArchitecture', $this->extractFirstString($device, [
             'os.architecture',
             'osArchitecture',
             'architecture',
             'system.architecture',
+            'ninjaone_reports.operating-systems.0.architecture',
         ])), 'glpi_items_operatingsystems');
         $this->addRelationFieldIfExists($data, 'operatingsystemservicepacks_id', $this->getOrCreateDropdownId('OperatingSystemServicePack', $this->extractFirstString($device, [
             'os.servicePack',
             'servicePack',
             'operatingSystem.servicePack',
+            'servicePackMajorVersion',
+            'os.servicePackMajorVersion',
+            'ninjaone_reports.operating-systems.0.servicePackMajorVersion',
         ])), 'glpi_items_operatingsystems');
         $this->addRelationFieldIfExists($data, 'operatingsystemkernels_id', $this->getOrCreateDropdownId('OperatingSystemKernel', $this->extractFirstString($device, [
             'os.kernel',
@@ -836,6 +923,7 @@ final class SyncRunner
             $result->messages[] = 'Advanced inventory skipped: no mapped GLPI computer found.';
             return;
         }
+        $devicePayloads = $this->getMappedDevicePayloadsByDeviceId($configId);
 
         $reports = [
             'computer-systems',
@@ -850,8 +938,12 @@ final class SyncRunner
 
         foreach ($reports as $reportName) {
             try {
-                $rows = $this->fetchQueryForOrganizations($client, $reportName, $organizationIds);
+                $fallbackUsed = false;
+                $rows = $this->fetchQueryForOrganizations($client, $reportName, $organizationIds, array_keys($deviceMap), $fallbackUsed);
                 $result->messages[] = sprintf('Fetched %d NinjaOne %s report rows.', count($rows), $reportName);
+                if ($fallbackUsed) {
+                    $result->messages[] = sprintf('NinjaOne %s report was filtered locally after unfiltered query fallback.', $reportName);
+                }
             } catch (\Throwable $e) {
                 $result->messages[] = sprintf('NinjaOne %s report skipped: %s', $reportName, $e->getMessage());
                 continue;
@@ -874,10 +966,10 @@ final class SyncRunner
                     match ($reportName) {
                         'computer-systems'    => $this->applyComputerSystemReport($computerId, $row),
                         'operating-systems'   => $this->upsertComputerOperatingSystem($computerId, $row),
-                        'network-interfaces'  => $this->upsertComputerNetworkInterface($computerId, $row),
-                        'processors'          => $this->appendComputerInventoryNote($computerId, 'Processor', $this->summarizeProcessor($row)),
-                        'disks'               => $this->appendComputerInventoryNote($computerId, 'Disk', $this->summarizeStorage($row)),
-                        'volumes'             => $this->appendComputerInventoryNote($computerId, 'Volume', $this->summarizeStorage($row)),
+                        'network-interfaces'  => $this->upsertComputerNetworkInterface($computerId, $row, $devicePayloads[$deviceId] ?? []),
+                        'processors'          => $this->upsertComputerProcessor($computerId, $row),
+                        'disks'               => $this->upsertComputerHardDrive($computerId, $row),
+                        'volumes'             => $this->upsertComputerVolume($computerId, $row),
                         'software'            => $this->upsertComputerSoftware($computerId, $row),
                         'logged-on-users'     => $this->applyLastLoggedOnUser($computerId, $row),
                         default               => null,
@@ -894,17 +986,50 @@ final class SyncRunner
         }
     }
 
-    private function fetchQueryForOrganizations(NinjaOneClient $client, string $queryName, array $organizationIds): array
+    private function fetchQueryForOrganizations(
+        NinjaOneClient $client,
+        string $queryName,
+        array $organizationIds,
+        array $mappedDeviceIds,
+        bool &$fallbackUsed
+    ): array
     {
+        $mappedDeviceIds = array_map('intval', $mappedDeviceIds);
+        $fallbackUsed = false;
+
         try {
-            return $client->listQueryForDeviceFilter($queryName, $this->buildOrganizationDeviceFilter($organizationIds));
+            $filteredRows = $client->listQueryForDeviceFilter($queryName, $this->buildOrganizationDeviceFilter($organizationIds));
+            $filteredRows = $this->filterReportRowsForScope($filteredRows, $organizationIds, $mappedDeviceIds);
+            if ($filteredRows !== []) {
+                return $filteredRows;
+            }
         } catch (\Throwable) {
-            $rows = $client->listQuery($queryName);
-            return array_values(array_filter(
-                $rows,
-                fn (mixed $row): bool => is_array($row) && in_array($this->extractOrganizationId($row), $organizationIds, true)
-            ));
+            // Some NinjaOne query endpoints do not accept the same device filter syntax as devices-detailed.
         }
+
+        $fallbackUsed = true;
+        $rows = $client->listQuery($queryName);
+        return $this->filterReportRowsForScope($rows, $organizationIds, $mappedDeviceIds);
+    }
+
+    private function filterReportRowsForScope(array $rows, array $organizationIds, array $mappedDeviceIds): array
+    {
+        return array_values(array_filter(
+            $rows,
+            function (mixed $row) use ($organizationIds, $mappedDeviceIds): bool {
+                if (!is_array($row)) {
+                    return false;
+                }
+
+                $deviceId = $this->extractDeviceId($row);
+                if ($deviceId > 0 && in_array($deviceId, $mappedDeviceIds, true)) {
+                    return true;
+                }
+
+                $organizationId = $this->extractOrganizationId($row);
+                return $organizationId > 0 && in_array($organizationId, $organizationIds, true);
+            }
+        ));
     }
 
     private function getMappedComputerIdsByDeviceId(int $configId): array
@@ -929,6 +1054,30 @@ final class SyncRunner
         }
 
         return $map;
+    }
+
+    private function getMappedDevicePayloadsByDeviceId(int $configId): array
+    {
+        global $DB;
+
+        $payloads = [];
+        $rows = $DB->request([
+            'SELECT' => ['ninjaone_device_id', 'last_payload_json'],
+            'FROM'   => 'glpi_plugin_ninjaone_devicemappings',
+            'WHERE'  => [
+                'plugin_ninjaone_configs_id' => $configId,
+            ],
+        ]);
+
+        foreach ($rows as $row) {
+            $deviceId = (int) $row['ninjaone_device_id'];
+            $payload = json_decode((string) ($row['last_payload_json'] ?? ''), true);
+            if ($deviceId > 0 && is_array($payload)) {
+                $payloads[$deviceId] = $payload;
+            }
+        }
+
+        return $payloads;
     }
 
     private function mergeReportPayload(int $configId, int $deviceId, string $reportName, array $row): void
@@ -960,6 +1109,12 @@ final class SyncRunner
         if (!isset($payload['ninjaone_reports'][$reportName]) || !is_array($payload['ninjaone_reports'][$reportName])) {
             $payload['ninjaone_reports'][$reportName] = [];
         }
+        $encodedRow = json_encode($row);
+        foreach ($payload['ninjaone_reports'][$reportName] as $existingRow) {
+            if (is_array($existingRow) && json_encode($existingRow) === $encodedRow) {
+                return;
+            }
+        }
         $payload['ninjaone_reports'][$reportName][] = $row;
 
         $DB->update(
@@ -980,6 +1135,7 @@ final class SyncRunner
             'serialNumber',
             'serial',
             'biosSerialNumber',
+            'assetSerialNumber',
             'system.serialNumber',
             'computerSystem.serialNumber',
         ]);
@@ -989,6 +1145,7 @@ final class SyncRunner
 
         $uuid = $this->extractFirstString($row, [
             'uuid',
+            'uid',
             'systemUuid',
             'system.uuid',
             'computerSystem.uuid',
@@ -1006,6 +1163,8 @@ final class SyncRunner
             'inventoryNumber',
             'chassis.assetTag',
             'system.assetTag',
+            'assetSerialNumber',
+            'system.assetSerialNumber',
         ]);
         if ($assetTag !== '') {
             $this->addComputerFieldIfExists($input, 'otherserial', $assetTag);
@@ -1015,6 +1174,8 @@ final class SyncRunner
         if (count($input) > 1 && $computer->getFromDB($computerId)) {
             $computer->update($input);
         }
+
+        $this->upsertComputerMemory($computerId, $row);
     }
 
     private function applyLastLoggedOnUser(int $computerId, array $row): void
@@ -1067,6 +1228,189 @@ final class SyncRunner
         ]);
     }
 
+    private function upsertComputerProcessor(int $computerId, array $row): void
+    {
+        global $DB;
+
+        if (!$DB->tableExists('glpi_deviceprocessors')
+            || !$DB->tableExists('glpi_items_deviceprocessors')
+            || !class_exists('DeviceProcessor')) {
+            $this->appendComputerInventoryNote($computerId, 'Processor', $this->summarizeProcessor($row));
+            return;
+        }
+
+        $name = $this->extractFirstString($row, ['name', 'model', 'processor', 'processorName', 'cpu.name']);
+        if ($name === '') {
+            return;
+        }
+
+        $frequencyMhz = $this->clockSpeedToMhz($this->extractFirstString($row, ['clockSpeed', 'maxClockSpeed', 'frequency', 'speed']));
+        $cores = $this->extractFirstInt($row, ['numCores', 'cores', 'coreCount', 'numberOfCores']);
+        $threads = $this->extractFirstInt($row, ['numLogicalCores', 'threads', 'logicalProcessors', 'numberOfLogicalProcessors']);
+
+        $processorInput = [];
+        $this->addFieldIfExists($processorInput, 'glpi_deviceprocessors', 'designation', $name);
+        $this->addFieldIfExists($processorInput, 'glpi_deviceprocessors', 'name', $name);
+        $this->addFieldIfExists($processorInput, 'glpi_deviceprocessors', 'frequence', $frequencyMhz);
+        $this->addFieldIfExists($processorInput, 'glpi_deviceprocessors', 'frequency_default', $frequencyMhz);
+        $this->addFieldIfExists($processorInput, 'glpi_deviceprocessors', 'nbcores_default', $cores);
+        $this->addFieldIfExists($processorInput, 'glpi_deviceprocessors', 'nbthreads_default', $threads);
+
+        $processorId = $this->getOrCreateDeviceComponentId('DeviceProcessor', 'glpi_deviceprocessors', $name, $processorInput);
+        if ($processorId <= 0) {
+            $this->appendComputerInventoryNote($computerId, 'Processor', $this->summarizeProcessor($row));
+            return;
+        }
+
+        $linkData = [
+            'items_id'            => $computerId,
+            'itemtype'            => 'Computer',
+            'deviceprocessors_id' => $processorId,
+        ];
+        $this->addFieldIfExists($linkData, 'glpi_items_deviceprocessors', 'frequency', $frequencyMhz);
+        $this->addFieldIfExists($linkData, 'glpi_items_deviceprocessors', 'nbcores', $cores);
+        $this->addFieldIfExists($linkData, 'glpi_items_deviceprocessors', 'nbthreads', $threads);
+        $this->upsertDeviceComponentLink('glpi_items_deviceprocessors', 'deviceprocessors_id', $computerId, $processorId, $linkData);
+    }
+
+    private function upsertComputerMemory(int $computerId, array $row): void
+    {
+        global $DB;
+
+        if (!$DB->tableExists('glpi_devicememories')
+            || !$DB->tableExists('glpi_items_devicememories')
+            || !class_exists('DeviceMemory')) {
+            return;
+        }
+
+        $sizeMib = $this->bytesToMib($this->extractFirstString($row, [
+            'totalPhysicalMemory',
+            'memory.capacity',
+            'memory',
+            'capacity',
+        ]));
+        if ($sizeMib <= 0) {
+            return;
+        }
+
+        $name = 'NinjaOne reported memory';
+        $memoryInput = [];
+        $this->addFieldIfExists($memoryInput, 'glpi_devicememories', 'designation', $name);
+        $this->addFieldIfExists($memoryInput, 'glpi_devicememories', 'name', $name);
+        $this->addFieldIfExists($memoryInput, 'glpi_devicememories', 'size_default', $sizeMib);
+
+        $memoryId = $this->getOrCreateDeviceComponentId('DeviceMemory', 'glpi_devicememories', $name, $memoryInput);
+        if ($memoryId <= 0) {
+            return;
+        }
+
+        $linkData = [
+            'items_id'           => $computerId,
+            'itemtype'           => 'Computer',
+            'devicememories_id'  => $memoryId,
+        ];
+        $this->addFieldIfExists($linkData, 'glpi_items_devicememories', 'size', $sizeMib);
+        $this->upsertDeviceComponentLink('glpi_items_devicememories', 'devicememories_id', $computerId, $memoryId, $linkData);
+    }
+
+    private function upsertComputerHardDrive(int $computerId, array $row): void
+    {
+        global $DB;
+
+        if (!$DB->tableExists('glpi_deviceharddrives')
+            || !$DB->tableExists('glpi_items_deviceharddrives')
+            || !class_exists('DeviceHardDrive')) {
+            $this->appendComputerInventoryNote($computerId, 'Disk', $this->summarizeStorage($row));
+            return;
+        }
+
+        $name = $this->extractFirstString($row, ['model', 'name', 'description']);
+        if ($name === '') {
+            return;
+        }
+
+        $capacityMib = $this->bytesToMib($this->extractFirstString($row, ['size', 'capacity', 'totalSize', 'bytesTotal']));
+        $serial = $this->extractFirstString($row, ['serialNumber', 'serial']);
+        $manufacturer = $this->extractFirstString($row, ['manufacturer']);
+
+        $driveInput = [];
+        $this->addFieldIfExists($driveInput, 'glpi_deviceharddrives', 'designation', $name);
+        $this->addFieldIfExists($driveInput, 'glpi_deviceharddrives', 'name', $name);
+        $this->addFieldIfExists($driveInput, 'glpi_deviceharddrives', 'capacity_default', $capacityMib);
+        $this->addFieldIfExists($driveInput, 'glpi_deviceharddrives', 'manufacturers_id', $this->getOrCreateDropdownId('Manufacturer', $manufacturer));
+
+        $driveId = $this->getOrCreateDeviceComponentId('DeviceHardDrive', 'glpi_deviceharddrives', $name, $driveInput);
+        if ($driveId <= 0) {
+            $this->appendComputerInventoryNote($computerId, 'Disk', $this->summarizeStorage($row));
+            return;
+        }
+
+        $linkData = [
+            'items_id'            => $computerId,
+            'itemtype'            => 'Computer',
+            'deviceharddrives_id' => $driveId,
+        ];
+        $this->addFieldIfExists($linkData, 'glpi_items_deviceharddrives', 'capacity', $capacityMib);
+        $this->addFieldIfExists($linkData, 'glpi_items_deviceharddrives', 'serial', $serial);
+        $this->upsertDeviceComponentLink('glpi_items_deviceharddrives', 'deviceharddrives_id', $computerId, $driveId, $linkData);
+    }
+
+    private function upsertComputerVolume(int $computerId, array $row): void
+    {
+        global $DB;
+
+        if (!$DB->tableExists('glpi_items_disks') || !class_exists('Item_Disk')) {
+            $this->appendComputerInventoryNote($computerId, 'Volume', $this->summarizeStorage($row));
+            return;
+        }
+
+        $device = $this->extractFirstString($row, ['name', 'driveLetter', 'label']);
+        $mountpoint = $this->extractFirstString($row, ['driveLetter', 'mountPoint', 'name']);
+        if ($device === '' && $mountpoint === '') {
+            return;
+        }
+
+        $data = [
+            'items_id' => $computerId,
+            'itemtype' => 'Computer',
+        ];
+        $this->addFieldIfExists($data, 'glpi_items_disks', 'name', $device !== '' ? $device : $mountpoint);
+        $this->addFieldIfExists($data, 'glpi_items_disks', 'device', $device);
+        $this->addFieldIfExists($data, 'glpi_items_disks', 'mountpoint', $mountpoint);
+        $this->addFieldIfExists($data, 'glpi_items_disks', 'fsname', $this->extractFirstString($row, ['fileSystem', 'filesystem', 'fsType']));
+        $this->addFieldIfExists($data, 'glpi_items_disks', 'totalsize', $this->bytesToMib($this->extractFirstString($row, ['capacity', 'size', 'totalSize', 'bytesTotal'])));
+        $this->addFieldIfExists($data, 'glpi_items_disks', 'freesize', $this->bytesToMib($this->extractFirstString($row, ['freeSpace', 'bytesFree', 'available'])));
+        $this->addFieldIfExists($data, 'glpi_items_disks', 'is_dynamic', 1);
+        $this->addFieldIfExists($data, 'glpi_items_disks', 'is_deleted', 0);
+
+        $where = [
+            'items_id' => $computerId,
+            'itemtype' => 'Computer',
+        ];
+        if ($DB->fieldExists('glpi_items_disks', 'mountpoint') && $mountpoint !== '') {
+            $where['mountpoint'] = $mountpoint;
+        } elseif ($DB->fieldExists('glpi_items_disks', 'device') && $device !== '') {
+            $where['device'] = $device;
+        }
+
+        $existing = $DB->request([
+            'SELECT' => ['id'],
+            'FROM'   => 'glpi_items_disks',
+            'WHERE'  => $where,
+            'LIMIT'  => 1,
+        ]);
+
+        $volume = new \Item_Disk();
+        if (count($existing) > 0) {
+            $existingRow = $existing->current();
+            $data['id'] = (int) $existingRow['id'];
+            $volume->update($data);
+            return;
+        }
+
+        $volume->add($data);
+    }
+
     private function summarizeProcessor(array $row): string
     {
         $name = $this->extractFirstString($row, [
@@ -1079,10 +1423,12 @@ final class SyncRunner
         $cores = $this->extractFirstString($row, [
             'cores',
             'coreCount',
+            'numCores',
             'numberOfCores',
         ]);
         $threads = $this->extractFirstString($row, [
             'threads',
+            'numLogicalCores',
             'logicalProcessors',
             'numberOfLogicalProcessors',
         ]);
@@ -1123,10 +1469,31 @@ final class SyncRunner
 
         return trim(implode(' | ', array_filter([
             $name,
-            $size !== '' ? 'size=' . $size : '',
-            $free !== '' ? 'free=' . $free : '',
+            $size !== '' ? 'size=' . $this->formatBytesForComment($size) : '',
+            $free !== '' ? 'free=' . $this->formatBytesForComment($free) : '',
             $filesystem,
         ])));
+    }
+
+    private function formatBytesForComment(string $value): string
+    {
+        if (!is_numeric($value)) {
+            return $value;
+        }
+
+        $bytes = (float) $value;
+        if ($bytes < 1024) {
+            return (string) (int) $bytes . ' B';
+        }
+
+        foreach (['KB', 'MB', 'GB', 'TB'] as $unit) {
+            $bytes /= 1024;
+            if ($bytes < 1024) {
+                return number_format($bytes, 2, '.', ' ') . ' ' . $unit;
+            }
+        }
+
+        return number_format($bytes, 2, '.', ' ') . ' PB';
     }
 
     private function findGlpiUserId(array $row): int
@@ -1135,7 +1502,7 @@ final class SyncRunner
 
         $candidates = array_values(array_unique(array_filter([
             $this->extractFirstString($row, ['email', 'mail', 'user.email', 'lastLoggedOnUser.email']),
-            $this->extractFirstString($row, ['login', 'username', 'userName', 'user.name', 'lastLoggedOnUser.userName']),
+            $this->extractFirstString($row, ['login', 'username', 'userName', 'lastLoggedInUser', 'user.name', 'lastLoggedOnUser.userName']),
             $this->extractFirstString($row, ['domainUser', 'lastLoggedOnUser.domainUser']),
         ])));
 
@@ -1166,7 +1533,7 @@ final class SyncRunner
         return 0;
     }
 
-    private function upsertComputerNetworkInterface(int $computerId, array $row): void
+    private function upsertComputerNetworkInterface(int $computerId, array $row, array $devicePayload = []): void
     {
         global $DB;
 
@@ -1178,6 +1545,7 @@ final class SyncRunner
 
         $mac = $this->normalizeMac($this->extractFirstString($row, [
             'macAddress',
+            'macAddress.0',
             'mac',
             'physicalAddress',
             'adapter.macAddress',
@@ -1186,10 +1554,16 @@ final class SyncRunner
         $name = $this->extractFirstString($row, [
             'name',
             'displayName',
-            'adapterName',
             'interfaceName',
+            'adapterName',
             'networkInterface.name',
         ]);
+        if ($name === '') {
+            $name = $this->extractFirstString($row, ['interfaceIndex']);
+            if ($name !== '') {
+                $name = 'Interface ' . $name;
+            }
+        }
         if ($name === '' && $mac !== '') {
             $name = $mac;
         }
@@ -1229,11 +1603,83 @@ final class SyncRunner
         ]);
         if (count($existing) > 0) {
             $networkPort = $existing->current();
-            $DB->update('glpi_networkports', $data, ['id' => (int) $networkPort['id']]);
+            $networkPortId = (int) $networkPort['id'];
+            $DB->update('glpi_networkports', $data, ['id' => $networkPortId]);
+            $this->upsertNetworkPortIpAddresses($networkPortId, $row, $devicePayload);
             return;
         }
 
         $DB->insert('glpi_networkports', $data);
+        $created = $DB->request([
+            'SELECT' => ['id'],
+            'FROM'   => 'glpi_networkports',
+            'WHERE'  => $where,
+            'LIMIT'  => 1,
+        ]);
+        if (count($created) > 0) {
+            $createdPort = $created->current();
+            $this->upsertNetworkPortIpAddresses((int) $createdPort['id'], $row, $devicePayload);
+        }
+    }
+
+    private function upsertNetworkPortIpAddresses(int $networkPortId, array $row, array $devicePayload = []): void
+    {
+        global $DB;
+
+        if ($networkPortId <= 0
+            || !$DB->tableExists('glpi_networknames')
+            || !$DB->tableExists('glpi_ipaddresses')
+            || !class_exists('NetworkName')) {
+            return;
+        }
+
+        $ipAddresses = $this->extractIpAddressList($row, ['ipAddress', 'ipAddresses', 'networkInterface.ipAddress']);
+        if ($ipAddresses === []) {
+            return;
+        }
+
+        $fqdnParts = $this->extractFqdnParts($row, $devicePayload);
+        if ($fqdnParts === null) {
+            return;
+        }
+        [$name, $domain] = $fqdnParts;
+        $fqdnId = $this->getOrCreateFqdnId($domain);
+        if ($fqdnId <= 0) {
+            return;
+        }
+
+        $where = [
+            'itemtype' => 'NetworkPort',
+            'items_id' => $networkPortId,
+        ];
+        if ($DB->fieldExists('glpi_networknames', 'name')) {
+            $where['name'] = $name;
+        }
+
+        $existing = $DB->request([
+            'SELECT' => ['id'],
+            'FROM'   => 'glpi_networknames',
+            'WHERE'  => $where,
+            'LIMIT'  => 1,
+        ]);
+
+        $input = [
+            'itemtype'     => 'NetworkPort',
+            'items_id'     => $networkPortId,
+            'name'         => $name,
+            '_ipaddresses' => $this->buildIpAddressInput($ipAddresses),
+        ];
+        $this->addFieldIfExists($input, 'glpi_networknames', 'fqdns_id', $fqdnId);
+
+        $networkName = new \NetworkName();
+        if (count($existing) > 0) {
+            $networkNameRow = $existing->current();
+            $input['id'] = (int) $networkNameRow['id'];
+            $networkName->update($input);
+            return;
+        }
+
+        $networkName->add($input);
     }
 
     private function upsertComputerSoftware(int $computerId, array $row): void
@@ -1288,6 +1734,17 @@ final class SyncRunner
             'LIMIT'  => 1,
         ]);
         if (count($existing) > 0) {
+            $existingRow = $existing->current();
+            $data = ['id' => (int) $existingRow['id']];
+            if ($DB->fieldExists('glpi_items_softwareversions', 'is_deleted')) {
+                $data['is_deleted'] = 0;
+            }
+            if (class_exists('\\Item_SoftwareVersion')) {
+                $installed = new \Item_SoftwareVersion();
+                $installed->update($data);
+            } else {
+                $DB->update('glpi_items_softwareversions', $data, ['id' => (int) $existingRow['id']]);
+            }
             return;
         }
 
@@ -1300,6 +1757,21 @@ final class SyncRunner
             if ($installedAt !== null) {
                 $data['date_install'] = $installedAt;
             }
+        }
+        $computer = new \Computer();
+        if ($computer->getFromDB($computerId)) {
+            if ($DB->fieldExists('glpi_items_softwareversions', 'is_template_item')) {
+                $data['is_template_item'] = $computer->maybeTemplate() ? (int) $computer->getField('is_template') : 0;
+            }
+            if ($DB->fieldExists('glpi_items_softwareversions', 'is_deleted_item')) {
+                $data['is_deleted_item'] = $computer->maybeDeleted() ? (int) $computer->getField('is_deleted') : 0;
+            }
+        }
+
+        if (class_exists('\\Item_SoftwareVersion')) {
+            $installed = new \Item_SoftwareVersion();
+            $installed->add($data);
+            return;
         }
 
         $DB->insert('glpi_items_softwareversions', $data);
@@ -1416,6 +1888,244 @@ final class SyncRunner
         }
 
         $data[$field] = $value;
+    }
+
+    private function addFieldIfExists(array &$data, string $table, string $field, mixed $value): void
+    {
+        global $DB;
+
+        if ($value === null || $value === '' || $value === 0 || !$DB->fieldExists($table, $field)) {
+            return;
+        }
+
+        $data[$field] = $value;
+    }
+
+    private function getOrCreateDeviceComponentId(string $className, string $table, string $name, array $input): int
+    {
+        global $DB;
+
+        if ($name === '' || !class_exists($className)) {
+            return 0;
+        }
+
+        foreach (['designation', 'name'] as $field) {
+            if (!$DB->fieldExists($table, $field)) {
+                continue;
+            }
+            $existing = $DB->request([
+                'SELECT' => ['id'],
+                'FROM'   => $table,
+                'WHERE'  => [$field => $name],
+                'LIMIT'  => 1,
+            ]);
+            if (count($existing) > 0) {
+                $row = $existing->current();
+                return (int) $row['id'];
+            }
+        }
+
+        $component = new $className();
+        $id = (int) $component->add($input);
+
+        return $id > 0 ? $id : 0;
+    }
+
+    private function getOrCreateFqdnId(string $domain): int
+    {
+        global $DB;
+
+        $domain = strtolower(trim($domain));
+        if ($domain === ''
+            || !$this->isValidDnsDomain($domain)
+            || !class_exists('FQDN')
+            || !$DB->tableExists('glpi_fqdns')) {
+            return 0;
+        }
+
+        $field = null;
+        foreach (['fqdn', 'name'] as $candidate) {
+            if ($DB->fieldExists('glpi_fqdns', $candidate)) {
+                $field = $candidate;
+                break;
+            }
+        }
+        if ($field === null) {
+            return 0;
+        }
+
+        $existing = $DB->request([
+            'SELECT' => ['id'],
+            'FROM'   => 'glpi_fqdns',
+            'WHERE'  => [$field => $domain],
+            'LIMIT'  => 1,
+        ]);
+        if (count($existing) > 0) {
+            $row = $existing->current();
+            return (int) $row['id'];
+        }
+
+        $fqdn = new \FQDN();
+        $id = (int) $fqdn->add([$field => $domain]);
+
+        return $id > 0 ? $id : 0;
+    }
+
+    private function upsertDeviceComponentLink(string $table, string $componentField, int $computerId, int $componentId, array $data): void
+    {
+        global $DB;
+
+        if (!$DB->fieldExists($table, 'items_id')
+            || !$DB->fieldExists($table, 'itemtype')
+            || !$DB->fieldExists($table, $componentField)) {
+            return;
+        }
+
+        $existing = $DB->request([
+            'SELECT' => ['id'],
+            'FROM'   => $table,
+            'WHERE'  => [
+                'items_id'        => $computerId,
+                'itemtype'        => 'Computer',
+                $componentField   => $componentId,
+            ],
+            'LIMIT'  => 1,
+        ]);
+
+        if (count($existing) > 0) {
+            $row = $existing->current();
+            $DB->update($table, $data, ['id' => (int) $row['id']]);
+            return;
+        }
+
+        $DB->insert($table, $data);
+    }
+
+    private function extractFirstInt(array $source, array $paths): int
+    {
+        foreach ($paths as $path) {
+            $value = $this->getPathValue($source, $path);
+            if (is_numeric($value)) {
+                return (int) $value;
+            }
+        }
+
+        return 0;
+    }
+
+    private function clockSpeedToMhz(string $value): int
+    {
+        if (!is_numeric($value)) {
+            return 0;
+        }
+
+        $speed = (float) $value;
+        if ($speed > 1000000) {
+            return (int) round($speed / 1000000);
+        }
+
+        return (int) round($speed);
+    }
+
+    private function bytesToMib(string $value): int
+    {
+        if (!is_numeric($value)) {
+            return 0;
+        }
+
+        return (int) round(((float) $value) / 1024 / 1024);
+    }
+
+    private function extractIpAddressList(array $source, array $paths): array
+    {
+        $addresses = [];
+
+        foreach ($paths as $path) {
+            $value = $this->getPathValue($source, $path);
+            if (is_array($value)) {
+                foreach ($value as $entry) {
+                    if (is_scalar($entry)) {
+                        $addresses[] = trim((string) $entry);
+                    }
+                }
+                continue;
+            }
+            if (is_scalar($value)) {
+                $addresses[] = trim((string) $value);
+            }
+        }
+
+        return array_values(array_unique(array_filter(
+            $addresses,
+            static fn (string $address): bool => filter_var($address, FILTER_VALIDATE_IP) !== false
+        )));
+    }
+
+    private function buildIpAddressInput(array $ipAddresses): array
+    {
+        $input = [];
+        $index = -1;
+        foreach ($ipAddresses as $ipAddress) {
+            $input[$index] = $ipAddress;
+            --$index;
+        }
+
+        return $input;
+    }
+
+    private function extractFqdnParts(array $row, array $devicePayload): ?array
+    {
+        $fqdn = strtolower($this->extractFirstString($devicePayload, [
+            'dnsName',
+            'fqdn',
+            'ninjaone_reports.network-interfaces.0.dnsName',
+        ]));
+
+        if ($fqdn !== '') {
+            $parts = explode('.', $fqdn, 2);
+            if (count($parts) === 2 && $this->isValidDnsLabel($parts[0]) && $this->isValidDnsDomain($parts[1])) {
+                return [$parts[0], $parts[1]];
+            }
+        }
+
+        $host = strtolower($this->extractFirstString($row, ['dnsHostName', 'hostname']));
+        $domain = $this->extractDomainFromPayload($devicePayload);
+        if ($host !== '' && $domain !== '' && $this->isValidDnsLabel($host) && $this->isValidDnsDomain($domain)) {
+            return [$host, $domain];
+        }
+
+        return null;
+    }
+
+    private function extractDomainFromPayload(array $devicePayload): string
+    {
+        $fqdn = strtolower($this->extractFirstString($devicePayload, ['dnsName', 'fqdn']));
+        if ($fqdn !== '' && str_contains($fqdn, '.')) {
+            return substr($fqdn, strpos($fqdn, '.') + 1);
+        }
+
+        return '';
+    }
+
+    private function isValidDnsLabel(string $label): bool
+    {
+        return preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/', $label) === 1;
+    }
+
+    private function isValidDnsDomain(string $domain): bool
+    {
+        $labels = explode('.', $domain);
+        if (count($labels) < 2) {
+            return false;
+        }
+
+        foreach ($labels as $label) {
+            if (!$this->isValidDnsLabel($label)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function upsertSingleDeviceMapping(int $configId, array $device, int $computerId, string $status): void

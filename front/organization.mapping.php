@@ -163,13 +163,38 @@ echo '<form method="post" action="organization.mapping.php?config_id=' . $config
 echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
 echo '<input type="hidden" name="config_id" value="' . $config_id . '">';
 
+if (!$is_single_mode) {
+    echo '<div class="list-group-item">';
+    echo '<div class="row g-3 align-items-center">';
+    echo '<div class="col-md-3">';
+    echo '<select class="form-select" name="bulk_action_name">';
+    echo '<option value="enable">' . __('Enable selected with entity', 'ninjaone') . '</option>';
+    echo '<option value="disable">' . __('Disable selected', 'ninjaone') . '</option>';
+    echo '</select>';
+    echo '</div>';
+    echo '<div class="col-md-3">';
+    echo '<select class="form-select" name="bulk_entities_id">';
+    echo '<option value="">' . __('Select entity', 'ninjaone') . '</option>';
+    foreach ($entities as $entity_id => $entity_name) {
+        echo '<option value="' . $entity_id . '">' . htmlspecialchars($entity_name, ENT_QUOTES, 'UTF-8') . '</option>';
+    }
+    echo '</select>';
+    echo '</div>';
+    echo '<div class="col-md-5 text-end">';
+    echo '<button class="btn btn-primary" type="submit" name="bulk_action" value="1">' . __('Apply to selected', 'ninjaone') . '</button>';
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
+}
+
 echo '<div class="list-group-item bg-light">';
 echo '<div class="row g-3 align-items-center fw-semibold">';
-echo '<div class="col-md-1"><input class="form-check-input" type="checkbox" onclick="document.querySelectorAll(\'.ninjaone-org-select\').forEach(function(cb){cb.checked = this.checked;}, this);"> ' . __('Selection / Sync', 'ninjaone') . '</div>';
+echo '<div class="col-md-1"><input class="form-check-input" type="checkbox" onclick="document.querySelectorAll(\'.ninjaone-org-select\').forEach(function(cb){cb.checked = this.checked;}, this);"> ' . __('Selection', 'ninjaone') . '</div>';
+echo '<div class="col-md-1">' . __('Sync Enabled', 'ninjaone') . '</div>';
 echo '<div class="col-md-3">' . __('NinjaOne organization', 'ninjaone') . '</div>';
-echo '<div class="col-md-3">' . __('GLPI entity', 'ninjaone') . '</div>';
-echo '<div class="col-md-2">' . __('Status') . '</div>';
-echo '<div class="col-md-3 text-end">' . __('Action') . '</div>';
+echo '<div class="col-md-4">' . __('GLPI entity', 'ninjaone') . '</div>';
+echo '<div class="col-md-1">' . __('Status') . '</div>';
+echo '<div class="col-md-2 text-end">' . __('Action') . '</div>';
 echo '</div>';
 echo '</div>';
 
@@ -190,8 +215,11 @@ foreach ($rows as $row) {
 
     echo '<div class="col-md-1">';
     echo '<input class="form-check-input ninjaone-org-select" type="checkbox" name="mapping_ids[]" value="' . $id . '">';
+    echo '</div>';
+
+    echo '<div class="col-md-1">';
     echo '<input type="hidden" name="row_sync_enabled[' . $id . ']" value="0">';
-    echo '<input class="form-check-input ms-2" type="checkbox" name="row_sync_enabled[' . $id . ']" value="1"'
+    echo '<input class="form-check-input" type="checkbox" name="row_sync_enabled[' . $id . ']" value="1"'
         . ($row_sync_enabled ? ' checked' : '') . '>';
     echo '</div>';
 
@@ -200,7 +228,7 @@ foreach ($rows as $row) {
     echo '<div class="text-muted small">' . __('NinjaOne ID', 'ninjaone') . ': <code>' . (int) $row['ninjaone_organization_id'] . '</code></div>';
     echo '</div>';
 
-    echo '<div class="col-md-3">';
+    echo '<div class="col-md-4">';
     echo '<select class="form-select" name="row_entities_id[' . $id . ']">';
     echo '<option value=""' . ($row['entities_id'] === null ? ' selected' : '') . '>'
         . __('Select entity', 'ninjaone')
@@ -213,7 +241,7 @@ foreach ($rows as $row) {
     echo '</select>';
     echo '</div>';
 
-    echo '<div class="col-md-2">';
+    echo '<div class="col-md-1">';
     if ($row_sync_enabled) {
         echo '<span class="badge bg-success">' . __('Ready', 'ninjaone') . '</span>';
     } elseif ($row['entities_id'] !== null) {
@@ -224,7 +252,7 @@ foreach ($rows as $row) {
     echo '<div class="text-muted small mt-1">' . htmlspecialchars((string) ($row['last_sync_at'] ?? ''), ENT_QUOTES, 'UTF-8') . '</div>';
     echo '</div>';
 
-    echo '<div class="col-md-3 text-end">';
+    echo '<div class="col-md-2 text-end">';
     echo '<button class="btn btn-sm btn-primary" type="submit" name="save_single_mapping" value="' . $id . '">' . __('Apply') . '</button>';
     echo '</div>';
 
@@ -235,30 +263,6 @@ foreach ($rows as $row) {
 if ($count === 0) {
     echo '<div class="list-group-item text-center text-muted">';
     echo __('No NinjaOne organization discovered yet. Run synchronization first.', 'ninjaone');
-    echo '</div>';
-}
-
-if (!$is_single_mode) {
-    echo '<div class="list-group-item">';
-    echo '<div class="row g-3 align-items-center">';
-    echo '<div class="col-md-3">';
-    echo '<select class="form-select" name="bulk_action_name">';
-    echo '<option value="enable">' . __('Enable selected with entity', 'ninjaone') . '</option>';
-    echo '<option value="disable">' . __('Disable selected', 'ninjaone') . '</option>';
-    echo '</select>';
-    echo '</div>';
-    echo '<div class="col-md-4">';
-    echo '<select class="form-select" name="bulk_entities_id">';
-    echo '<option value="">' . __('Select entity', 'ninjaone') . '</option>';
-    foreach ($entities as $entity_id => $entity_name) {
-        echo '<option value="' . $entity_id . '">' . htmlspecialchars($entity_name, ENT_QUOTES, 'UTF-8') . '</option>';
-    }
-    echo '</select>';
-    echo '</div>';
-    echo '<div class="col-md-5 text-end">';
-    echo '<button class="btn btn-primary" type="submit" name="bulk_action" value="1">' . __('Apply to selected', 'ninjaone') . '</button>';
-    echo '</div>';
-    echo '</div>';
     echo '</div>';
 }
 
