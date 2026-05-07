@@ -1,0 +1,15 @@
+{
+  "name": "uopslab/glpi-ninjaone",
+  "description": "GLPI 11 plugin to synchronize NinjaOne inventory into native GLPI assets.",
+  "type": "glpi-plugin",
+  "license": "GPL-3.0-or-later",
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "GlpiPlugin\\Ninjaone\\": "src/"
+    }
+  }
+}
+

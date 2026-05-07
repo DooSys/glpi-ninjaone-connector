@@ -1,0 +1,10 @@
+.env
+.env.local
+config.local.php
+vendor/
+node_modules/
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
