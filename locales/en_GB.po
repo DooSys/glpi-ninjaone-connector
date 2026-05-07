@@ -1,0 +1,113 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: NinjaOne connector\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en_GB\n"
+
+msgid "NinjaOne connector"
+msgstr "NinjaOne Connector"
+
+msgid "NinjaOne connection"
+msgstr "NinjaOne Connection"
+
+msgid "Base URL"
+msgstr "Base URL"
+
+msgid "Scopes"
+msgstr "Scopes"
+
+msgid "Client ID"
+msgstr "Client ID"
+
+msgid "Client secret"
+msgstr "Client Secret"
+
+msgid "A client secret is stored. Leave this field empty to keep it unchanged."
+msgstr "A client secret is stored. Leave this field empty to keep it unchanged."
+
+msgid "No client secret is stored yet."
+msgstr "No client secret is stored yet."
+
+msgid "Redirect URL"
+msgstr "Redirect URL"
+
+msgid "NinjaOne machine-to-machine credentials are configured."
+msgstr "NinjaOne machine-to-machine credentials are configured."
+
+msgid "NinjaOne client secret is missing. Create a Services API client with Client Credentials."
+msgstr "NinjaOne client secret is missing. Create a Services API client with Client Credentials."
+
+msgid "Organization management"
+msgstr "Organisation Management"
+
+msgid "Organization mode"
+msgstr "Organisation Mode"
+
+msgid "Single organization"
+msgstr "Single Organisation"
+
+msgid "Multi organization"
+msgstr "Multi-Organisation"
+
+msgid "NinjaOne organization"
+msgstr "NinjaOne Organisation"
+
+msgid "Select organization"
+msgstr "Select an Organisation"
+
+msgid "GLPI entity"
+msgstr "GLPI Entity"
+
+msgid "Select entity"
+msgstr "Select an Entity"
+
+msgid "Run a synchronization once to discover NinjaOne organizations."
+msgstr "Run a synchronisation once to discover NinjaOne organisations."
+
+msgid "Map organizations"
+msgstr "Map Organisations"
+
+msgid "Scheduling"
+msgstr "Scheduling"
+
+msgid "Run at"
+msgstr "Run at"
+
+msgid "Repeat every"
+msgstr "Repeat every"
+
+msgid "hours"
+msgstr "hours"
+
+msgid "Leave the repeat field empty to run once per day at the configured time."
+msgstr "Leave the repeat field empty to run once per day at the configured time."
+
+msgid "The GLPI automatic action NinjaoneSync runs from GLPI cron and applies this schedule."
+msgstr "The GLPI automatic action NinjaoneSync runs from the GLPI cron and applies this schedule."
+
+msgid "Test NinjaOne connection"
+msgstr "Test NinjaOne Connection"
+
+msgid "Run NinjaOne synchronization"
+msgstr "Run NinjaOne Synchronisation"
+
+msgid "Map locations"
+msgstr "Map Locations"
+
+msgid "Inspect device payloads"
+msgstr "Inspect Device Payloads"
+
+msgid "Logs"
+msgstr "Logs"
+
+msgid "NinjaOne connection successful. Organization sample count: %d"
+msgstr "NinjaOne connection successful. Organisation sample count: %d"
+
+msgid "NinjaOne connection failed: "
+msgstr "NinjaOne connection failed: "
+
+msgid "NinjaOne synchronization finished: %d created, %d updated, %d skipped, %d errors."
+msgstr "NinjaOne synchronisation completed: %d created, %d updated, %d skipped, %d errors."
+
+msgid "NinjaOne synchronization failed: "
+msgstr "NinjaOne synchronisation failed: "
