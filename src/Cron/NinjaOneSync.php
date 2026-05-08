@@ -31,7 +31,11 @@ final class NinjaOneSync
                 continue;
             }
             $result = $runner->runFullSync($config, 'cron');
-            $task->log(implode("\n", $result->messages));
+            $volume = $result->created + $result->updated + $result->skipped + $result->errors;
+            $task->addVolume($volume);
+            if ($result->messages !== []) {
+                \Toolbox::logInFile('ninjaone', implode("\n", $result->messages) . "\n");
+            }
             $DB->update(
                 'glpi_plugin_ninjaone_configs',
                 ['last_scheduled_sync_at' => date('Y-m-d H:i:s')],

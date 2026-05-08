@@ -1639,20 +1639,15 @@ final class SyncRunner
         }
 
         $fqdnParts = $this->extractFqdnParts($row, $devicePayload);
-        if ($fqdnParts === null) {
-            return;
-        }
-        [$name, $domain] = $fqdnParts;
-        $fqdnId = $this->getOrCreateFqdnId($domain);
-        if ($fqdnId <= 0) {
-            return;
-        }
+        $name = $fqdnParts[0] ?? '';
+        $domain = $fqdnParts[1] ?? '';
+        $fqdnId = $domain !== '' ? $this->getOrCreateFqdnId($domain) : 0;
 
         $where = [
             'itemtype' => 'NetworkPort',
             'items_id' => $networkPortId,
         ];
-        if ($DB->fieldExists('glpi_networknames', 'name')) {
+        if ($name !== '' && $DB->fieldExists('glpi_networknames', 'name')) {
             $where['name'] = $name;
         }
 
@@ -1666,10 +1661,14 @@ final class SyncRunner
         $input = [
             'itemtype'     => 'NetworkPort',
             'items_id'     => $networkPortId,
-            'name'         => $name,
             '_ipaddresses' => $this->buildIpAddressInput($ipAddresses),
         ];
-        $this->addFieldIfExists($input, 'glpi_networknames', 'fqdns_id', $fqdnId);
+        if ($name !== '') {
+            $this->addFieldIfExists($input, 'glpi_networknames', 'name', $name);
+        }
+        if ($fqdnId > 0) {
+            $this->addFieldIfExists($input, 'glpi_networknames', 'fqdns_id', $fqdnId);
+        }
 
         $networkName = new \NetworkName();
         if (count($existing) > 0) {
@@ -2083,15 +2082,28 @@ final class SyncRunner
 
         if ($fqdn !== '') {
             $parts = explode('.', $fqdn, 2);
-            if (count($parts) === 2 && $this->isValidDnsLabel($parts[0]) && $this->isValidDnsDomain($parts[1])) {
-                return [$parts[0], $parts[1]];
+            if (count($parts) === 2 && $this->isValidDnsDomain($parts[1])) {
+                $normalizedLabel = $this->normalizeDnsLabel($parts[0]);
+                if ($normalizedLabel !== '') {
+                    return [$normalizedLabel, $parts[1]];
+                }
+            }
+            if (!str_contains($fqdn, '.')) {
+                $normalizedLabel = $this->normalizeDnsLabel($fqdn);
+                if ($normalizedLabel !== '') {
+                    return [$normalizedLabel, ''];
+                }
             }
         }
 
         $host = strtolower($this->extractFirstString($row, ['dnsHostName', 'hostname']));
+        $normalizedHost = $this->normalizeDnsLabel($host);
         $domain = $this->extractDomainFromPayload($devicePayload);
-        if ($host !== '' && $domain !== '' && $this->isValidDnsLabel($host) && $this->isValidDnsDomain($domain)) {
-            return [$host, $domain];
+        if ($normalizedHost !== '' && $domain !== '' && $this->isValidDnsDomain($domain)) {
+            return [$normalizedHost, $domain];
+        }
+        if ($normalizedHost !== '') {
+            return [$normalizedHost, ''];
         }
 
         return null;
@@ -2110,6 +2122,19 @@ final class SyncRunner
     private function isValidDnsLabel(string $label): bool
     {
         return preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/', $label) === 1;
+    }
+
+    private function normalizeDnsLabel(string $label): string
+    {
+        $label = strtolower(trim($label));
+        $label = preg_replace('/[^a-z0-9-]+/', '-', $label) ?? '';
+        $label = trim($label, '-');
+
+        if (strlen($label) > 63) {
+            $label = rtrim(substr($label, 0, 63), '-');
+        }
+
+        return $this->isValidDnsLabel($label) ? $label : '';
     }
 
     private function isValidDnsDomain(string $domain): bool
@@ -2161,6 +2186,9 @@ final class SyncRunner
 
         if (count($existing) > 0) {
             $row = $existing->current();
+            if (empty($row['first_sync_at'])) {
+                $data['first_sync_at'] = $now;
+            }
             $DB->update('glpi_plugin_ninjaone_devicemappings', $data, ['id' => (int) $row['id']]);
             return;
         }
@@ -2168,6 +2196,7 @@ final class SyncRunner
         $DB->insert('glpi_plugin_ninjaone_devicemappings', $data + [
             'plugin_ninjaone_configs_id' => $configId,
             'ninjaone_device_id'         => $deviceId,
+            'first_sync_at'              => $now,
         ]);
     }
 

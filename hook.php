@@ -79,6 +79,7 @@ function plugin_ninjaone_install(): bool
             `ninjaone_organization_id` bigint unsigned NULL,
             `ninjaone_location_id` bigint unsigned NULL,
             `computers_id` int {$default_key_sign} NOT NULL DEFAULT 0,
+            `first_sync_at` timestamp NULL DEFAULT NULL,
             `last_seen_at` timestamp NULL DEFAULT NULL,
             `last_sync_at` timestamp NULL DEFAULT NULL,
             `last_payload_hash` varchar(64) NULL,
@@ -187,24 +188,67 @@ function plugin_ninjaone_install(): bool
         );
     }
 
+    if ($DB->tableExists('glpi_plugin_ninjaone_devicemappings')
+        && !$DB->fieldExists('glpi_plugin_ninjaone_devicemappings', 'first_sync_at')) {
+        $DB->doQuery(
+            'ALTER TABLE `glpi_plugin_ninjaone_devicemappings` ADD `first_sync_at` timestamp NULL DEFAULT NULL AFTER `computers_id`'
+        );
+    }
+
     if ($DB->tableExists('glpi_plugin_ninjaone_organizationmappings')) {
         $DB->update('glpi_plugin_ninjaone_organizationmappings', ['sync_enabled' => 0], ['entities_id' => null]);
     }
 
-    CronTask::Register('GlpiPlugin\\Ninjaone\\Cron\\NinjaOneSync', 'NinjaoneSync', HOUR_TIMESTAMP, [
-        'mode' => CronTask::MODE_EXTERNAL,
-    ]);
+    plugin_ninjaone_register_cron_task();
 
     $migration->executeMigration();
 
     return true;
 }
 
+function plugin_ninjaone_register_cron_task(): void
+{
+    global $DB;
+
+    $itemtype = 'GlpiPlugin\\Ninjaone\\Cron\\NinjaOneSync';
+    if (!class_exists($itemtype)) {
+        $cron_file = __DIR__ . '/src/Cron/NinjaOneSync.php';
+        if (file_exists($cron_file)) {
+            require_once $cron_file;
+        }
+    }
+
+    $frequency = MINUTE_TIMESTAMP;
+    $options = [
+        'comment'   => 'Synchronize NinjaOne inventory using the schedule configured in the NinjaOne connector.',
+        'mode'      => CronTask::MODE_EXTERNAL,
+        'allowmode' => CronTask::MODE_INTERNAL | CronTask::MODE_EXTERNAL,
+        'state'     => CronTask::STATE_WAITING,
+    ];
+
+    CronTask::Register($itemtype, 'NinjaoneSync', $frequency, $options);
+
+    if ($DB->tableExists('glpi_crontasks')) {
+        $DB->update(
+            'glpi_crontasks',
+            [
+                'itemtype'  => $itemtype,
+                'frequency' => $frequency,
+                'mode'      => CronTask::MODE_EXTERNAL,
+                'allowmode' => CronTask::MODE_INTERNAL | CronTask::MODE_EXTERNAL,
+                'state'     => CronTask::STATE_WAITING,
+                'comment'   => $options['comment'],
+            ],
+            ['name' => 'NinjaoneSync']
+        );
+    }
+}
+
 function plugin_ninjaone_uninstall(): bool
 {
     global $DB;
 
-    CronTask::Unregister('GlpiPlugin\\Ninjaone\\Cron\\NinjaOneSync');
+    CronTask::Unregister('Ninjaone');
 
     $tables = [
         'synclogs',

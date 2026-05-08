@@ -116,6 +116,60 @@ msgstr "Synchronisation NinjaOne terminée : %d créé(s), %d mis à jour, %d ig
 msgid "NinjaOne synchronization failed: "
 msgstr "Échec de la synchronisation NinjaOne : "
 
+msgid "NinjaOne device"
+msgstr "Appareil NinjaOne"
+
+msgid "Open in NinjaOne"
+msgstr "Ouvrir dans NinjaOne"
+
+msgid "NinjaOne devices"
+msgstr "Appareils NinjaOne"
+
+msgid "This computer is not linked to NinjaOne."
+msgstr "Cet ordinateur n'est pas lié à NinjaOne."
+
+msgid "First synchronization"
+msgstr "Première synchronisation"
+
+msgid "Last synchronization"
+msgstr "Dernière synchronisation"
+
+msgid "Last NinjaOne contact"
+msgstr "Dernier contact NinjaOne"
+
+msgid "Configuration"
+msgstr "Configuration"
+
+msgid "Node class"
+msgstr "Classe du noeud"
+
+msgid "System name"
+msgstr "Nom système"
+
+msgid "Last logged in user"
+msgstr "Dernier utilisateur connecté"
+
+msgid "Last raw payload"
+msgstr "Dernier payload brut"
+
+msgid "No payload stored yet."
+msgstr "Aucun payload stocké pour le moment."
+
+msgid "Sync enabled"
+msgstr "Synchro active"
+
+msgid "NinjaOne location"
+msgstr "Lieu NinjaOne"
+
+msgid "NinjaOne organization"
+msgstr "Organisation NinjaOne"
+
+msgid "GLPI location"
+msgstr "Lieu GLPI"
+
+msgid "Available to map"
+msgstr "Disponible au mappage"
+
 msgid ""
 msgstr ""
 "Project-Id-Version: NinjaOne connector\n"
@@ -229,4 +283,3 @@ msgstr "Synchronisation NinjaOne terminée : %d créé(s), %d mis à jour, %d ig
 
 msgid "NinjaOne synchronization failed: "
 msgstr "Échec de la synchronisation NinjaOne : "
-

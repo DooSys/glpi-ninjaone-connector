@@ -5,9 +5,10 @@ use GlpiPlugin\Ninjaone\Config;
 use GlpiPlugin\Ninjaone\DeviceMapping;
 use GlpiPlugin\Ninjaone\LocationMapping;
 use GlpiPlugin\Ninjaone\OrganizationMapping;
+use GlpiPlugin\Ninjaone\ComputerLink;
 use GlpiPlugin\Ninjaone\SyncLog;
 
-define('PLUGIN_NINJAONE_VERSION', '0.1.18-dev');
+define('PLUGIN_NINJAONE_VERSION', '0.1.26-dev');
 define('PLUGIN_NINJAONE_MIN_GLPI_VERSION', '11.0.0');
 define('PLUGIN_NINJAONE_MAX_GLPI_VERSION', '11.99.99');
 
@@ -15,11 +16,18 @@ function plugin_init_ninjaone(): void
 {
     global $PLUGIN_HOOKS;
 
+    Plugin::loadLang('ninjaone');
+
     Plugin::registerClass(Config::class);
     Plugin::registerClass(SyncLog::class);
     Plugin::registerClass(OrganizationMapping::class);
     Plugin::registerClass(LocationMapping::class);
     Plugin::registerClass(DeviceMapping::class);
+    Plugin::registerClass(ComputerLink::class, [
+        'addtabon' => [
+            Computer::class,
+        ],
+    ]);
 
     $PLUGIN_HOOKS['csrf_compliant']['ninjaone'] = true;
     if (Session::haveRight('config', UPDATE)) {
@@ -28,6 +36,7 @@ function plugin_init_ninjaone(): void
     $PLUGIN_HOOKS[Hooks::MENU_TOADD]['ninjaone'] = [
         'plugins' => Config::class,
     ];
+    $PLUGIN_HOOKS['post_item_form']['ninjaone'] = [ComputerLink::class, 'postItemForm'];
 }
 
 function plugin_version_ninjaone(): array

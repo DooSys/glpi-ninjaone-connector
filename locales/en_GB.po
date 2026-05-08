@@ -111,3 +111,57 @@ msgstr "NinjaOne synchronisation completed: %d created, %d updated, %d skipped, 
 
 msgid "NinjaOne synchronization failed: "
 msgstr "NinjaOne synchronisation failed: "
+
+msgid "NinjaOne device"
+msgstr "NinjaOne device"
+
+msgid "Open in NinjaOne"
+msgstr "Open in NinjaOne"
+
+msgid "NinjaOne devices"
+msgstr "NinjaOne devices"
+
+msgid "This computer is not linked to NinjaOne."
+msgstr "This computer is not linked to NinjaOne."
+
+msgid "First synchronization"
+msgstr "First synchronisation"
+
+msgid "Last synchronization"
+msgstr "Last synchronisation"
+
+msgid "Last NinjaOne contact"
+msgstr "Last NinjaOne contact"
+
+msgid "Configuration"
+msgstr "Configuration"
+
+msgid "Node class"
+msgstr "Node class"
+
+msgid "System name"
+msgstr "System name"
+
+msgid "Last logged in user"
+msgstr "Last logged-in user"
+
+msgid "Last raw payload"
+msgstr "Last raw payload"
+
+msgid "No payload stored yet."
+msgstr "No payload stored yet."
+
+msgid "Sync enabled"
+msgstr "Sync enabled"
+
+msgid "NinjaOne location"
+msgstr "NinjaOne location"
+
+msgid "NinjaOne organization"
+msgstr "NinjaOne organisation"
+
+msgid "GLPI location"
+msgstr "GLPI location"
+
+msgid "Available to map"
+msgstr "Available to map"

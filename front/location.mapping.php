@@ -159,6 +159,17 @@ echo '</div>';
 
 echo '<div class="list-group list-group-flush">';
 
+echo '<div class="list-group-item bg-light fw-semibold d-none d-md-block">';
+echo '<div class="row g-3 align-items-center">';
+echo '<div class="col-md-1">' . __('Sync enabled', 'ninjaone') . '</div>';
+echo '<div class="col-md-3">' . __('NinjaOne location', 'ninjaone') . '</div>';
+echo '<div class="col-md-3">' . __('NinjaOne organization', 'ninjaone') . '</div>';
+echo '<div class="col-md-3">' . __('GLPI location', 'ninjaone') . '</div>';
+echo '<div class="col-md-1">' . __('Status') . '</div>';
+echo '<div class="col-md-1 text-end">' . __('Actions') . '</div>';
+echo '</div>';
+echo '</div>';
+
 $where = ['plugin_ninjaone_configs_id' => $config_id];
 if (($config->fields['organization_mode'] ?? 'multi') === 'single'
     && (int) ($config->fields['single_ninjaone_organization_id'] ?? 0) > 0) {
@@ -176,6 +187,8 @@ foreach ($rows as $row) {
     $count++;
     $id = (int) $row['id'];
     $row_sync_enabled = (int) $row['sync_enabled'] === 1;
+    $mapped_location_id = (int) ($row['locations_id'] ?? 0);
+    $has_glpi_location = $mapped_location_id > 0;
     $organization = $organizations[(int) $row['ninjaone_organization_id']] ?? null;
     $organization_name = is_array($organization)
         ? (string) $organization['ninjaone_organization_name']
@@ -208,24 +221,24 @@ foreach ($rows as $row) {
 
     echo '<div class="col-md-3">';
     echo '<select class="form-select" name="locations_id">';
-    echo '<option value=""' . ($row['locations_id'] === null ? ' selected' : '') . '>' . __('Select location', 'ninjaone') . '</option>';
+    echo '<option value=""' . (!$has_glpi_location ? ' selected' : '') . '>' . __('Select location', 'ninjaone') . '</option>';
     foreach ($locations as $location_id => $location_name) {
         echo '<option value="' . $location_id . '"'
-            . ($row['locations_id'] !== null && (int) $row['locations_id'] === $location_id ? ' selected' : '')
+            . ($has_glpi_location && $mapped_location_id === $location_id ? ' selected' : '')
             . '>' . htmlspecialchars($location_name, ENT_QUOTES, 'UTF-8') . '</option>';
     }
     echo '</select>';
     echo '</div>';
 
     echo '<div class="col-md-1">';
-    if ($row_sync_enabled) {
+    if ($row_sync_enabled && $has_glpi_location && $organization_ready) {
         echo '<span class="badge bg-success">' . __('Ready', 'ninjaone') . '</span>';
-    } elseif ($row['locations_id'] !== null) {
-        echo '<span class="badge text-bg-light border">' . __('Mapped but disabled', 'ninjaone') . '</span>';
     } elseif (!$organization_ready) {
         echo '<span class="badge bg-warning text-dark">' . __('Organization required', 'ninjaone') . '</span>';
+    } elseif ($has_glpi_location) {
+        echo '<span class="badge text-bg-light border">' . __('Mapped but disabled', 'ninjaone') . '</span>';
     } else {
-        echo '<span class="badge bg-warning text-dark">' . __('Not mapped', 'ninjaone') . '</span>';
+        echo '<span class="badge text-bg-secondary">' . __('Available to map', 'ninjaone') . '</span>';
     }
     echo '</div>';
 
