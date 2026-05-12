@@ -16,8 +16,8 @@ final class SyncRunner
             $config['client_id'],
             $config['client_secret'] ?? '',
             $config['scopes'] ?? 'monitoring',
-            null,
-            null,
+            $config['access_token'] ?? null,
+            $config['refresh_token'] ?? null,
             $config['redirect_uri'] ?? null
         );
 
