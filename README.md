@@ -50,8 +50,6 @@ GLPI/
 3. Installer puis activer **NinjaOne connector**.
 4. Ouvrir la page de configuration du plugin.
 
-Le nom du dossier doit rester `ninjaone`.
-
 ## Configuration NinjaOne
 
 Dans NinjaOne, creer une application API dediee au connecteur GLPI.
@@ -74,6 +72,7 @@ Si NinjaOne demande une URI de redirection OAuth, utiliser :
 ```text
 https://votre-glpi.example/marketplace/ninjaone/front/oauth.callback.php
 ```
+<img width="686" height="487" alt="image" src="https://github.com/user-attachments/assets/0aa90821-f13c-455a-9d66-eeed5c25ba96" />
 
 Adaptez le chemin si votre instance expose les plugins via `/plugins/ninjaone/`.
 
