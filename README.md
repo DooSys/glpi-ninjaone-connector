@@ -125,7 +125,8 @@ Les organisations nouvellement decouvertes sont creees desactivees par defaut. E
 Les locations NinjaOne peuvent etre associees a des lieux GLPI.
 
 Le mapping des lieux sert notamment a renseigner le champ lieu des ordinateurs GLPI lors de la synchronisation. Un lieu peut etre selectionne manuellement ou cree depuis la page de mapping lorsque l'organisation parent est deja associee a une entite GLPI.
-<img width="1642" height="676" alt="image" src="https://github.com/user-attachments/assets/b2996031-9920-4e28-af8a-a59b8c08ed82" />
+<img width="1638" height="666" alt="image" src="https://github.com/user-attachments/assets/0dbb59c9-06d2-4679-8ec2-af1baa3a3a89" />
+
 
 ## Source d'inventaire
 
