@@ -8,7 +8,7 @@ use GlpiPlugin\Ninjaone\OrganizationMapping;
 use GlpiPlugin\Ninjaone\ComputerLink;
 use GlpiPlugin\Ninjaone\SyncLog;
 
-define('PLUGIN_NINJAONE_VERSION', '0.1.26-dev');
+define('PLUGIN_NINJAONE_VERSION', '0.1.41-dev');
 define('PLUGIN_NINJAONE_MIN_GLPI_VERSION', '11.0.0');
 define('PLUGIN_NINJAONE_MAX_GLPI_VERSION', '11.99.99');
 
@@ -36,7 +36,7 @@ function plugin_init_ninjaone(): void
     $PLUGIN_HOOKS[Hooks::MENU_TOADD]['ninjaone'] = [
         'plugins' => Config::class,
     ];
-    $PLUGIN_HOOKS['post_item_form']['ninjaone'] = [ComputerLink::class, 'postItemForm'];
+    $PLUGIN_HOOKS['pre_item_form']['ninjaone'] = [ComputerLink::class, 'preItemForm'];
 }
 
 function plugin_version_ninjaone(): array

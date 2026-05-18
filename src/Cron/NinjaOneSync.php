@@ -10,7 +10,7 @@ final class NinjaOneSync
     public static function cronInfo(string $name): array
     {
         return [
-            'description' => __('Synchronize NinjaOne inventory', 'ninjaone'),
+            'description' => __('Synchronize NinjaOne inventory twice a day', 'ninjaone'),
         ];
     }
 
@@ -27,9 +27,6 @@ final class NinjaOneSync
         ]);
 
         foreach ($iterator as $config) {
-            if (!self::isConfigDue($config)) {
-                continue;
-            }
             $result = $runner->runFullSync($config, 'cron');
             $volume = $result->created + $result->updated + $result->skipped + $result->errors;
             $task->addVolume($volume);
@@ -45,30 +42,5 @@ final class NinjaOneSync
         }
 
         return $count > 0 ? 1 : 0;
-    }
-
-    private static function isConfigDue(array $config): bool
-    {
-        $syncTime = (string) ($config['sync_time'] ?? '02:00:00');
-        if (!preg_match('/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/', $syncTime)) {
-            $syncTime = '02:00:00';
-        }
-
-        $now = time();
-        $scheduledToday = strtotime(date('Y-m-d') . ' ' . $syncTime);
-        if ($scheduledToday === false || $now < $scheduledToday) {
-            return false;
-        }
-
-        $lastRun = empty($config['last_scheduled_sync_at'])
-            ? null
-            : strtotime((string) $config['last_scheduled_sync_at']);
-
-        $repeatHours = isset($config['sync_repeat_hours']) ? (int) $config['sync_repeat_hours'] : 0;
-        if ($repeatHours > 0) {
-            return $lastRun === null || ($now - $lastRun) >= ($repeatHours * HOUR_TIMESTAMP);
-        }
-
-        return $lastRun === null || date('Y-m-d', $lastRun) !== date('Y-m-d', $now);
     }
 }

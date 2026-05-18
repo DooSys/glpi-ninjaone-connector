@@ -81,7 +81,44 @@ function plugin_ninjaone_apply_single_organization_mode(int $config_id, array $i
     );
 }
 
+function plugin_ninjaone_get_cron_url(
+    string $itemtype = 'GlpiPlugin\\Ninjaone\\Cron\\NinjaOneSync',
+    string $name = 'NinjaoneSync'
+): string
+{
+    global $DB;
+
+    if ($DB->tableExists('glpi_crontasks')) {
+        $rows = $DB->request([
+            'SELECT' => ['id'],
+            'FROM'   => 'glpi_crontasks',
+            'WHERE'  => [
+                'itemtype' => $itemtype,
+                'name'     => $name,
+            ],
+            'LIMIT'  => 1,
+        ]);
+        if (count($rows) > 0) {
+            return CronTask::getFormURLWithID((int) $rows->current()['id']);
+        }
+    }
+
+    return CronTask::getSearchURL(false);
+}
+
+function plugin_ninjaone_config_anchor(string $anchor): string
+{
+    $allowed = ['connection', 'organizations', 'inventory', 'scheduling', 'diagnostics'];
+    return in_array($anchor, $allowed, true) ? $anchor : 'connection';
+}
+
+function plugin_ninjaone_config_url_with_anchor(int $config_id, string $anchor): string
+{
+    return Config::getFormURLWithID($config_id) . '#plugin_ninjaone_config_' . plugin_ninjaone_config_anchor($anchor);
+}
+
 if (isset($_POST['test_connection'])) {
+    $anchor = plugin_ninjaone_config_anchor((string) $_POST['test_connection']);
     if ($config->getFromDB((int) $_POST['id'])) {
         try {
             $client = new NinjaOneClient(
@@ -105,11 +142,13 @@ if (isset($_POST['test_connection'])) {
                 ERROR
             );
         }
+        Html::redirect(plugin_ninjaone_config_url_with_anchor((int) $_POST['id'], $anchor));
     }
     Html::back();
 }
 
 if (isset($_POST['run_sync'])) {
+    $anchor = plugin_ninjaone_config_anchor((string) $_POST['run_sync']);
     if ($config->getFromDB((int) $_POST['id'])) {
         try {
             $runner = new SyncRunner();
@@ -132,19 +171,21 @@ if (isset($_POST['run_sync'])) {
                 ERROR
             );
         }
+        Html::redirect(plugin_ninjaone_config_url_with_anchor((int) $_POST['id'], $anchor));
     }
     Html::back();
 }
 
 if (isset($_POST['add'])) {
     $new_id = $config->add($_POST);
-    Html::redirect(Config::getFormURLWithID($new_id));
+    Html::redirect(plugin_ninjaone_config_url_with_anchor((int) $new_id, 'connection'));
 }
 
 if (isset($_POST['update'])) {
+    $anchor = plugin_ninjaone_config_anchor((string) $_POST['update']);
     $config->update($_POST);
     plugin_ninjaone_apply_single_organization_mode((int) $_POST['id'], $_POST);
-    Html::back();
+    Html::redirect(plugin_ninjaone_config_url_with_anchor((int) $_POST['id'], $anchor));
 }
 
 if (isset($_POST['purge'])) {
@@ -168,8 +209,8 @@ if ($id > 0) {
         'is_active'     => 1,
         'organization_mode' => 'multi',
         'single_ninjaone_organization_id' => null,
-        'sync_time' => '02:00:00',
-        'sync_repeat_hours' => null,
+        'inventory_mode' => 'mapping_only',
+        'sync_stale_days' => 20,
     ];
 }
 
@@ -180,6 +221,10 @@ $entities = plugin_ninjaone_get_entities_for_select();
 $organization_mode = (string) ($config->fields['organization_mode'] ?? 'multi');
 if (!in_array($organization_mode, ['single', 'multi'], true)) {
     $organization_mode = 'multi';
+}
+$inventory_mode = (string) ($config->fields['inventory_mode'] ?? 'mapping_only');
+if (!in_array($inventory_mode, ['mapping_only', 'full'], true)) {
+    $inventory_mode = 'mapping_only';
 }
 $single_organization_id = (int) ($config->fields['single_ninjaone_organization_id'] ?? 0);
 $single_entity_id = null;
@@ -197,15 +242,29 @@ Html::header(
 );
 
 echo '<div class="container-fluid">';
+echo '<style>
+.plugin-ninjaone-config-block {
+    background: var(--tblr-bg-surface, #fff);
+    border: 1.5px solid var(--tblr-border-color, #d9dee3) !important;
+    scroll-margin-top: 5rem;
+}
+.plugin-ninjaone-config-block-header {
+    background: var(--tblr-bg-surface-secondary, #f6f8fb);
+    border-bottom: 1.5px solid var(--tblr-border-color, #d9dee3);
+    margin: -1rem -1rem 1rem;
+    padding: .75rem 1rem;
+}
+.plugin-ninjaone-config-block-header h4 {
+    margin: 0;
+}
+</style>';
 echo '<form method="post" action="' . Config::getFormURL(false) . '">';
 echo '<input type="hidden" name="id" value="' . (int) ($config->fields['id'] ?? 0) . '">';
 
-echo '<div class="card">';
-echo '<div class="card-header">';
-echo '<h3 class="card-title">' . __('NinjaOne connection', 'ninjaone') . '</h3>';
+echo '<div id="plugin_ninjaone_config_connection" class="plugin-ninjaone-config-block rounded p-3 mb-3">';
+echo '<div class="plugin-ninjaone-config-block-header rounded-top">';
+echo '<h4>' . __('NinjaOne connection', 'ninjaone') . '</h4>';
 echo '</div>';
-echo '<div class="card-body">';
-
 echo '<div class="row g-3">';
 
 echo '<div class="col-md-6">';
@@ -256,6 +315,18 @@ echo '<input class="form-control" type="text" name="redirect_uri" value="' . htm
 echo '</div>';
 
 if ((int) ($config->fields['id'] ?? 0) > 0) {
+    echo '<div class="mt-3 d-flex flex-wrap gap-2">';
+    echo '<button class="btn btn-primary" type="submit" name="update" value="connection">' . _x('button', 'Save') . '</button>';
+    echo '<button class="btn btn-success" type="submit" name="test_connection" value="connection">' . __('Test connection', 'ninjaone') . '</button>';
+    echo '<button class="btn btn-info text-white" type="submit" name="run_sync" value="connection">' . __('Run synchronization', 'ninjaone') . '</button>';
+    echo '</div>';
+} else {
+    echo '<div class="col-md-12 d-flex flex-wrap gap-2">';
+    echo '<button class="btn btn-primary" type="submit" name="add" value="1">' . _x('button', 'Add') . '</button>';
+    echo '</div>';
+}
+
+if ((int) ($config->fields['id'] ?? 0) > 0) {
     $has_secret = !empty($config->fields['client_secret']);
     echo '<div class="col-md-12">';
     echo '<div class="alert ' . ($has_secret ? 'alert-success' : 'alert-warning') . ' mb-0">';
@@ -264,12 +335,16 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
         : __('NinjaOne client secret is missing. Create a Services API client with Client Credentials.', 'ninjaone');
     echo '</div>';
     echo '</div>';
+}
 
-    echo '<div class="col-md-12"><hr class="my-1"></div>';
+echo '</div>';
+echo '</div>';
 
-    echo '<div class="col-md-12">';
-    echo '<div class="border rounded p-3">';
-    echo '<h4 class="mb-3">' . __('Organization management', 'ninjaone') . '</h4>';
+if ((int) ($config->fields['id'] ?? 0) > 0) {
+    echo '<div id="plugin_ninjaone_config_organizations" class="plugin-ninjaone-config-block rounded p-3 mb-3">';
+    echo '<div class="plugin-ninjaone-config-block-header rounded-top">';
+    echo '<h4>' . __('Organization management', 'ninjaone') . '</h4>';
+    echo '</div>';
 
     echo '<div class="row g-3">';
     echo '<div class="col-md-4">';
@@ -309,64 +384,83 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
 
     if ($organizations === []) {
         echo '<div class="alert alert-info mt-3 mb-0">' . __('Run a synchronization once to discover NinjaOne organizations.', 'ninjaone') . '</div>';
-    } elseif ($organization_mode === 'multi') {
-        echo '<div class="mt-3">';
-        echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map organizations', 'ninjaone') . '</a>';
-        echo '</div>';
     }
 
+    echo '<div class="col-md-12 d-flex flex-wrap gap-2 mt-3">';
+    echo '<button class="btn btn-primary" type="submit" name="update" value="organizations">' . _x('button', 'Save') . '</button>';
+    if ($organizations !== [] && $organization_mode === 'multi') {
+        echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map organizations', 'ninjaone') . '</a>';
+        echo '<a class="btn btn-outline-primary" href="location.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map locations', 'ninjaone') . '</a>';
+    }
     echo '</div>';
     echo '</div>';
 
-    echo '<div class="col-md-12">';
-    echo '<div class="border rounded p-3">';
-    echo '<h4 class="mb-3">' . __('Scheduling', 'ninjaone') . '</h4>';
+    echo '<div id="plugin_ninjaone_config_inventory" class="plugin-ninjaone-config-block rounded p-3 mb-3">';
+    echo '<div class="plugin-ninjaone-config-block-header rounded-top">';
+    echo '<h4>' . __('Inventory source', 'ninjaone') . '</h4>';
+    echo '</div>';
     echo '<div class="row g-3">';
-    echo '<div class="col-md-3">';
-    echo '<label class="form-label">' . __('Run at', 'ninjaone') . '</label>';
-    $sync_time = substr((string) ($config->fields['sync_time'] ?? '02:00:00'), 0, 5);
-    echo '<input class="form-control" type="time" name="sync_time" value="' . htmlspecialchars($sync_time, ENT_QUOTES, 'UTF-8') . '">';
+    echo '<div class="col-md-6">';
+    echo '<label class="form-label">' . __('NinjaOne synchronization mode', 'ninjaone') . '</label>';
+    echo '<select class="form-select" name="inventory_mode">';
+    echo '<option value="mapping_only"' . ($inventory_mode === 'mapping_only' ? ' selected' : '') . '>' . __('Advanced synchronization - GLPI Agent inventory through NinjaOne Automation', 'ninjaone') . '</option>';
+    echo '<option value="full"' . ($inventory_mode === 'full' ? ' selected' : '') . '>' . __('Minimal synchronization - inventory based on NinjaOne', 'ninjaone') . '</option>';
+    echo '</select>';
     echo '</div>';
     echo '<div class="col-md-3">';
-    echo '<label class="form-label">' . __('Repeat every', 'ninjaone') . '</label>';
+    echo '<label class="form-label">' . __('Stale sync alert after', 'ninjaone') . '</label>';
     echo '<div class="input-group">';
-    echo '<input class="form-control" type="number" min="1" step="1" name="sync_repeat_hours" value="' . htmlspecialchars((string) ($config->fields['sync_repeat_hours'] ?? ''), ENT_QUOTES, 'UTF-8') . '">';
-    echo '<span class="input-group-text">' . __('hours', 'ninjaone') . '</span>';
+    echo '<input class="form-control" type="number" min="1" step="1" name="sync_stale_days" value="' . htmlspecialchars((string) ($config->fields['sync_stale_days'] ?? 20), ENT_QUOTES, 'UTF-8') . '">';
+    echo '<span class="input-group-text">' . __('days', 'ninjaone') . '</span>';
     echo '</div>';
     echo '</div>';
-    echo '<div class="col-md-6 d-flex align-items-end">';
+    echo '<div class="col-md-3 d-flex align-items-end">';
     echo '<div class="alert alert-info py-2 px-3 mb-0 w-100">';
-    echo __('The GLPI automatic action NinjaoneSync runs from GLPI cron and applies this schedule.', 'ninjaone');
+    echo __('Mapping only keeps NinjaOne identity, organization, location, last contact and serial while GLPI Agent updates hardware, OS and software.', 'ninjaone');
     echo '</div>';
     echo '</div>';
-    echo '<div class="col-md-12">';
-    echo '<div class="form-text">' . __('Leave the repeat field empty to run once per day at the configured time.', 'ninjaone') . '</div>';
-    echo '</div>';
-    echo '</div>';
-    echo '</div>';
-    echo '</div>';
-}
-
-echo '</div>';
-echo '</div>';
-
-echo '<div class="card-footer d-flex gap-2">';
-if ((int) ($config->fields['id'] ?? 0) > 0) {
-    echo '<button class="btn btn-primary" type="submit" name="update" value="1">' . _x('button', 'Save') . '</button>';
-    echo '<button class="btn btn-secondary" type="submit" name="test_connection" value="1">' . __('Test NinjaOne connection', 'ninjaone') . '</button>';
-    echo '<button class="btn btn-secondary" type="submit" name="run_sync" value="1">' . __('Run NinjaOne synchronization', 'ninjaone') . '</button>';
-    if ($organization_mode === 'multi') {
-        echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map organizations', 'ninjaone') . '</a>';
+    echo '<div class="col-md-12 d-flex flex-wrap gap-2">';
+    echo '<button class="btn btn-primary" type="submit" name="update" value="inventory">' . _x('button', 'Save') . '</button>';
+    if ($inventory_mode === 'mapping_only') {
+        echo '<a class="btn btn-outline-primary" href="ninjaone.script.php">' . __('Generate NinjaOne automation script', 'ninjaone') . '</a>';
     }
-    echo '<a class="btn btn-outline-primary" href="location.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map locations', 'ninjaone') . '</a>';
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
+
+    echo '<div id="plugin_ninjaone_config_scheduling" class="plugin-ninjaone-config-block rounded p-3 mb-3">';
+    echo '<div class="plugin-ninjaone-config-block-header rounded-top">';
+    echo '<h4>' . __('Scheduling', 'ninjaone') . '</h4>';
+    echo '</div>';
+    echo '<div class="row g-3">';
+    echo '<div class="col-md-12">';
+    echo '<div class="alert alert-info py-2 px-3 mb-0 w-100">';
+    echo __('The GLPI automatic action runs the NinjaOne synchronization twice a day. Use the button below to force an immediate synchronization when needed.', 'ninjaone');
+    echo '</div>';
+    echo '</div>';
+    echo '<div class="col-md-12 d-flex gap-2">';
+    echo '<a class="btn btn-outline-secondary" href="' . htmlspecialchars(plugin_ninjaone_get_cron_url(), ENT_QUOTES, 'UTF-8') . '">' . __('Open GLPI cron task', 'ninjaone') . '</a>';
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
+
+    echo '<div id="plugin_ninjaone_config_diagnostics" class="plugin-ninjaone-config-block rounded p-3 mb-3">';
+    echo '<div class="plugin-ninjaone-config-block-header rounded-top">';
+    echo '<h4>' . __('Diagnostics', 'ninjaone') . '</h4>';
+    echo '</div>';
+    echo '<div class="alert alert-info py-2 px-3 mb-3">';
+    echo __('NinjaOne synchronization logs older than 30 days are purged every 3 days by the dedicated GLPI automatic action.', 'ninjaone');
+    echo '</div>';
+    echo '<div class="d-flex flex-wrap gap-2">';
     echo '<a class="btn btn-outline-secondary" href="device.payload.php?config_id=' . (int) $config->fields['id'] . '">' . __('Inspect device payloads', 'ninjaone') . '</a>';
     echo '<a class="btn btn-outline-secondary" href="synclog.php?config_id=' . (int) $config->fields['id'] . '">' . __('Logs') . '</a>';
-} else {
-    echo '<button class="btn btn-primary" type="submit" name="add" value="1">' . _x('button', 'Add') . '</button>';
+    echo '<a class="btn btn-outline-secondary" href="' . htmlspecialchars(plugin_ninjaone_get_cron_url('GlpiPlugin\\Ninjaone\\Cron\\NinjaOneLogPurge', 'NinjaoneLogPurge'), ENT_QUOTES, 'UTF-8') . '">' . __('Open log purge cron task', 'ninjaone') . '</a>';
+    echo '</div>';
+    echo '</div>';
 }
-echo '<a class="btn btn-outline-secondary" href="' . Config::getSearchURL(false) . '">' . __('Cancel') . '</a>';
-echo '</div>';
 
+echo '<div class="d-flex flex-wrap gap-2">';
+echo '<a class="btn btn-outline-secondary" href="' . Config::getSearchURL(false) . '">' . __('Cancel') . '</a>';
 echo '</div>';
 Html::closeForm();
 echo '</div>';

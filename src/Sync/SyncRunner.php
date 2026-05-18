@@ -10,6 +10,7 @@ final class SyncRunner
     {
         $result = new SyncResult();
         $startedAt = date('Y-m-d H:i:s');
+        $inventoryMode = $this->normalizeInventoryMode((string) ($config['inventory_mode'] ?? 'mapping_only'));
 
         $client = new NinjaOneClient(
             $config['base_url'],
@@ -73,8 +74,12 @@ final class SyncRunner
                     );
                 }
                 $result->messages[] = sprintf('Fetched %d NinjaOne devices for %d enabled organizations.', count($devices), count($organizationIds));
-                $this->upsertDevicesAsComputers((int) $config['id'], $devices, $result);
-                $this->syncAdvancedInventory((int) $config['id'], $client, $organizationIds, $result);
+                $this->upsertDevicesAsComputers((int) $config['id'], $devices, $result, $inventoryMode === 'mapping_only');
+                if ($inventoryMode === 'full') {
+                    $this->syncAdvancedInventory((int) $config['id'], $client, $organizationIds, $result);
+                } else {
+                    $result->messages[] = 'NinjaOne advanced inventory skipped: GLPI Agent portable is the inventory source.';
+                }
             }
         } catch (\Throwable $e) {
             $result->errors++;
@@ -84,6 +89,11 @@ final class SyncRunner
         $this->writeLog((int) ($config['id'] ?? 0), $mode, $startedAt, $result);
 
         return $result;
+    }
+
+    private function normalizeInventoryMode(string $mode): string
+    {
+        return in_array($mode, ['full', 'mapping_only'], true) ? $mode : 'mapping_only';
     }
 
     private function getEnabledOrganizationIds(int $configId): array
@@ -326,7 +336,7 @@ final class SyncRunner
         }
     }
 
-    private function upsertDevicesAsComputers(int $configId, array $devices, SyncResult $result): void
+    private function upsertDevicesAsComputers(int $configId, array $devices, SyncResult $result, bool $mappingOnly = false): void
     {
         foreach ($devices as $device) {
             if (!is_array($device) || !isset($device['id'])) {
@@ -346,17 +356,29 @@ final class SyncRunner
                 continue;
             }
 
-            $computerId = $this->findComputerId($configId, $device);
-            $input = $this->buildComputerInput($configId, $entityId, $device);
+            $computerId = $this->findComputerId($configId, $device, $mappingOnly);
+            $input = $this->buildComputerInput($configId, $entityId, $device, $mappingOnly);
+
+            if ($mappingOnly && $computerId <= 0 && empty($input['serial'])) {
+                $this->upsertSingleDeviceMapping($configId, $device, 0, 'pending_inventory_link');
+                $result->skipped++;
+                $result->messages[] = sprintf(
+                    'NinjaOne device %d skipped in mapping-only mode: no serial number to link with GLPI Agent inventory.',
+                    (int) $device['id']
+                );
+                continue;
+            }
 
             $computer = new \Computer();
             if ($computerId > 0 && $computer->getFromDB($computerId)) {
                 $input['id'] = $computerId;
                 if ($computer->update($input)) {
-                    try {
-                        $this->upsertComputerOperatingSystem($computerId, $device);
-                    } catch (\Throwable $e) {
-                        $result->messages[] = sprintf('OS mapping skipped for NinjaOne device %d: %s', (int) $device['id'], $e->getMessage());
+                    if (!$mappingOnly) {
+                        try {
+                            $this->upsertComputerOperatingSystem($computerId, $device);
+                        } catch (\Throwable $e) {
+                            $result->messages[] = sprintf('OS mapping skipped for NinjaOne device %d: %s', (int) $device['id'], $e->getMessage());
+                        }
                     }
                     $this->upsertSingleDeviceMapping($configId, $device, $computerId, 'computer_updated');
                     $result->updated++;
@@ -369,10 +391,12 @@ final class SyncRunner
 
             $newComputerId = (int) $computer->add($input);
             if ($newComputerId > 0) {
-                try {
-                    $this->upsertComputerOperatingSystem($newComputerId, $device);
-                } catch (\Throwable $e) {
-                    $result->messages[] = sprintf('OS mapping skipped for NinjaOne device %d: %s', (int) $device['id'], $e->getMessage());
+                if (!$mappingOnly) {
+                    try {
+                        $this->upsertComputerOperatingSystem($newComputerId, $device);
+                    } catch (\Throwable $e) {
+                        $result->messages[] = sprintf('OS mapping skipped for NinjaOne device %d: %s', (int) $device['id'], $e->getMessage());
+                    }
                 }
                 $this->upsertSingleDeviceMapping($configId, $device, $newComputerId, 'computer_created');
                 $result->created++;
@@ -410,7 +434,7 @@ final class SyncRunner
         return (int) $row['entities_id'];
     }
 
-    private function findComputerId(int $configId, array $device): int
+    private function findComputerId(int $configId, array $device, bool $mappingOnly = false): int
     {
         global $DB;
 
@@ -459,10 +483,36 @@ final class SyncRunner
             }
         }
 
+        if ($mappingOnly) {
+            return 0;
+        }
+
+        $uuid = $this->extractFirstString($device, [
+            'uuid',
+            'uid',
+            'systemUuid',
+            'system.uuid',
+            'hardware.uuid',
+            'computerSystem.uuid',
+            'ninjaone_reports.computer-systems.0.uuid',
+        ]);
+        if ($uuid !== '') {
+            $matches = $DB->request([
+                'SELECT' => ['id'],
+                'FROM'   => 'glpi_computers',
+                'WHERE'  => ['uuid' => $uuid],
+                'LIMIT'  => 1,
+            ]);
+            if (count($matches) > 0) {
+                $row = $matches->current();
+                return (int) $row['id'];
+            }
+        }
+
         return 0;
     }
 
-    private function buildComputerInput(int $configId, int $entityId, array $device): array
+    private function buildComputerInput(int $configId, int $entityId, array $device, bool $mappingOnly = false): array
     {
         $deviceId = (int) $device['id'];
         $name = $this->extractFirstString($device, [
@@ -499,6 +549,8 @@ final class SyncRunner
             'systemUuid',
             'system.uuid',
             'hardware.uuid',
+            'computerSystem.uuid',
+            'ninjaone_reports.computer-systems.0.uuid',
         ]);
 
         $comment = $this->buildComputerComment($device);
@@ -509,10 +561,13 @@ final class SyncRunner
             'comment'     => $comment,
         ];
 
-        $this->addComputerFieldIfExists($input, 'manufacturers_id', $this->getOrCreateDropdownId('Manufacturer', $this->extractManufacturer($device)));
-        $this->addComputerFieldIfExists($input, 'computermodels_id', $this->getOrCreateDropdownId('ComputerModel', $this->extractModel($device)));
-        $this->addComputerFieldIfExists($input, 'computertypes_id', $this->getOrCreateDropdownId('ComputerType', $this->extractComputerType($device)));
         $this->addComputerFieldIfExists($input, 'locations_id', $this->getMappedLocationId($configId, $device));
+
+        if (!$mappingOnly) {
+            $this->addComputerFieldIfExists($input, 'manufacturers_id', $this->getOrCreateDropdownId('Manufacturer', $this->extractManufacturer($device)));
+            $this->addComputerFieldIfExists($input, 'computermodels_id', $this->getOrCreateDropdownId('ComputerModel', $this->extractModel($device)));
+            $this->addComputerFieldIfExists($input, 'computertypes_id', $this->getOrCreateDropdownId('ComputerType', $this->extractComputerType($device)));
+        }
 
         $inventoryNumber = $this->extractFirstString($device, [
             'assetTag',
@@ -524,19 +579,19 @@ final class SyncRunner
             'chassis.assetTag',
             'system.assetSerialNumber',
         ]);
-        if ($inventoryNumber !== '') {
+        if (!$mappingOnly && $inventoryNumber !== '') {
             $this->addComputerFieldIfExists($input, 'otherserial', $inventoryNumber);
         }
 
         $lastInventory = $this->timestampToSqlDate($device['lastContact'] ?? ($device['lastUpdate'] ?? null));
-        if ($lastInventory !== null) {
+        if (!$mappingOnly && $lastInventory !== null) {
             $this->addComputerFieldIfExists($input, 'last_inventory_update', $lastInventory);
         }
 
         if ($serial !== '') {
             $input['serial'] = $serial;
         }
-        if ($uuid !== '') {
+        if (!$mappingOnly && $uuid !== '') {
             $input['uuid'] = $uuid;
         }
 

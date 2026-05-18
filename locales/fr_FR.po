@@ -1,18 +1,42 @@
-ChatGPT
-
-
-
-cartexactement la struture tu peux bien faire correspondre ce fichier po pour un fichier FR : msgid ""
+msgid ""
 msgstr ""
 "Project-Id-Version: NinjaOne connector\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Language: fr_FR\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 msgid "NinjaOne connector"
 msgstr "Connecteur NinjaOne"
 
+msgid "NinjaOne"
+msgstr "NinjaOne"
+
 msgid "NinjaOne connection"
 msgstr "Connexion NinjaOne"
+
+msgid "NinjaOne connections"
+msgstr "Connexions NinjaOne"
+
+msgid "Add a NinjaOne connection"
+msgstr "Ajouter une connexion NinjaOne"
+
+msgid "Declared connectors"
+msgstr "Connecteurs déclarés"
+
+msgid "Active connectors"
+msgstr "Connecteurs actifs"
+
+msgid "Active organizations"
+msgstr "Organisations actives"
+
+msgid "Mapped locations"
+msgstr "Lieux mappés"
+
+msgid "Linked computers"
+msgstr "Ordinateurs liés"
+
+msgid "Pending links"
+msgstr "Liaisons en attente"
 
 msgid "Base URL"
 msgstr "URL de base"
@@ -39,13 +63,31 @@ msgid "NinjaOne machine-to-machine credentials are configured."
 msgstr "Les identifiants machine à machine NinjaOne sont configurés."
 
 msgid "NinjaOne client secret is missing. Create a Services API client with Client Credentials."
-msgstr "Le secret client NinjaOne est manquant. Créez un client Services API avec les identifiants client."
+msgstr "Le secret client NinjaOne est manquant. Créez un client Services API en mode Client Credentials."
+
+msgid "Test connection"
+msgstr "Tester la connexion"
+
+msgid "Run synchronization"
+msgstr "Lancer la synchronisation"
+
+msgid "Run synchronization now"
+msgstr "Lancer la synchronisation maintenant"
+
+msgid "No active NinjaOne connection found."
+msgstr "Aucune connexion NinjaOne active trouvée."
+
+msgid "Generate NinjaOne script"
+msgstr "Générer le script NinjaOne"
+
+msgid "Generate NinjaOne automation script"
+msgstr "Générer le script d'automatisation NinjaOne"
 
 msgid "Organization management"
 msgstr "Gestion des organisations"
 
 msgid "Organization mode"
-msgstr "Mode organisation"
+msgstr "Mode d'organisation"
 
 msgid "Single organization"
 msgstr "Organisation unique"
@@ -66,10 +108,34 @@ msgid "Select entity"
 msgstr "Sélectionner une entité"
 
 msgid "Run a synchronization once to discover NinjaOne organizations."
-msgstr "Lancez une synchronisation une première fois pour découvrir les organisations NinjaOne."
+msgstr "Lancez une première synchronisation pour découvrir les organisations NinjaOne."
 
 msgid "Map organizations"
 msgstr "Mapper les organisations"
+
+msgid "Map locations"
+msgstr "Mapper les lieux"
+
+msgid "Inventory source"
+msgstr "Source d'inventaire"
+
+msgid "NinjaOne synchronization mode"
+msgstr "Mode de synchronisation NinjaOne"
+
+msgid "Advanced synchronization - GLPI Agent inventory through NinjaOne Automation"
+msgstr "Synchronisation avancée - l'inventaire GLPI Agent via NinjaOne Automation"
+
+msgid "Minimal synchronization - inventory based on NinjaOne"
+msgstr "Synchronisation minimale - l'inventaire basé sur NinjaOne"
+
+msgid "Stale sync alert after"
+msgstr "Alerte synchro ancienne après"
+
+msgid "days"
+msgstr "jours"
+
+msgid "Mapping only keeps NinjaOne identity, organization, location, last contact and serial while GLPI Agent updates hardware, OS and software."
+msgstr "Le mode mappage conserve uniquement l'identité NinjaOne, l'organisation, le lieu, le dernier contact et le numéro de série. GLPI Agent met à jour le matériel, l'OS et les logiciels."
 
 msgid "Scheduling"
 msgstr "Planification"
@@ -84,19 +150,31 @@ msgid "hours"
 msgstr "heures"
 
 msgid "Leave the repeat field empty to run once per day at the configured time."
-msgstr "Laissez le champ de répétition vide pour exécuter une fois par jour à l'heure configurée."
+msgstr "Laissez la répétition vide pour exécuter la synchronisation une fois par jour à l'heure configurée."
 
-msgid "The GLPI automatic action NinjaoneSync runs from GLPI cron and applies this schedule."
-msgstr "L'action automatique GLPI NinjaoneSync est exécutée par le cron GLPI et applique cette planification."
+msgid "The GLPI automatic action runs the NinjaOne synchronization twice a day. Use the button below to force an immediate synchronization when needed."
+msgstr "L'action automatique GLPI exécute la synchronisation NinjaOne deux fois par jour. Utilisez le bouton ci-dessous pour forcer une synchronisation immédiate si besoin."
 
-msgid "Test NinjaOne connection"
-msgstr "Tester la connexion NinjaOne"
+msgid "Synchronize NinjaOne inventory twice a day"
+msgstr "Synchroniser l'inventaire NinjaOne deux fois par jour"
 
-msgid "Run NinjaOne synchronization"
-msgstr "Lancer la synchronisation NinjaOne"
+msgid "Open GLPI cron task"
+msgstr "Ouvrir l'action automatique GLPI"
 
-msgid "Map locations"
-msgstr "Mapper les lieux"
+msgid "NinjaOne automation"
+msgstr "Automatisation NinjaOne"
+
+msgid "Diagnostics"
+msgstr "Diagnostics"
+
+msgid "NinjaOne synchronization logs older than 30 days are purged every 3 days by the dedicated GLPI automatic action."
+msgstr "Les journaux de synchronisation NinjaOne de plus de 30 jours sont purgés tous les 3 jours par l'action automatique GLPI dédiée."
+
+msgid "Open log purge cron task"
+msgstr "Ouvrir l'action automatique de purge des journaux"
+
+msgid "Purge NinjaOne synchronization logs older than 30 days"
+msgstr "Purger les journaux de synchronisation NinjaOne de plus de 30 jours"
 
 msgid "Inspect device payloads"
 msgstr "Inspecter les données des appareils"
@@ -104,8 +182,14 @@ msgstr "Inspecter les données des appareils"
 msgid "Logs"
 msgstr "Journaux"
 
+msgid "Test NinjaOne connection"
+msgstr "Tester la connexion NinjaOne"
+
+msgid "Run NinjaOne synchronization"
+msgstr "Lancer la synchronisation NinjaOne"
+
 msgid "NinjaOne connection successful. Organization sample count: %d"
-msgstr "Connexion NinjaOne réussie. Nombre d'organisations échantillon : %d"
+msgstr "Connexion NinjaOne réussie. Nombre d'organisations retournées dans l'échantillon : %d"
 
 msgid "NinjaOne connection failed: "
 msgstr "Échec de la connexion NinjaOne : "
@@ -116,17 +200,50 @@ msgstr "Synchronisation NinjaOne terminée : %d créé(s), %d mis à jour, %d ig
 msgid "NinjaOne synchronization failed: "
 msgstr "Échec de la synchronisation NinjaOne : "
 
+msgid "Synchronize NinjaOne inventory"
+msgstr "Synchroniser l'inventaire NinjaOne"
+
 msgid "NinjaOne device"
 msgstr "Appareil NinjaOne"
-
-msgid "Open in NinjaOne"
-msgstr "Ouvrir dans NinjaOne"
 
 msgid "NinjaOne devices"
 msgstr "Appareils NinjaOne"
 
+msgid "NinjaOne device mapping"
+msgstr "Mappage d'appareil NinjaOne"
+
+msgid "NinjaOne device mappings"
+msgstr "Mappages d'appareils NinjaOne"
+
+msgid "NinjaOne organization mapping"
+msgstr "Mappage d'organisation NinjaOne"
+
+msgid "NinjaOne organization mappings"
+msgstr "Mappages d'organisations NinjaOne"
+
+msgid "NinjaOne location mapping"
+msgstr "Mappage de lieu NinjaOne"
+
+msgid "NinjaOne location mappings"
+msgstr "Mappages de lieux NinjaOne"
+
+msgid "NinjaOne synchronization log"
+msgstr "Journal de synchronisation NinjaOne"
+
+msgid "NinjaOne synchronization logs"
+msgstr "Journaux de synchronisation NinjaOne"
+
+msgid "No log found"
+msgstr "Aucun journal trouvé"
+
 msgid "This computer is not linked to NinjaOne."
 msgstr "Cet ordinateur n'est pas lié à NinjaOne."
+
+msgid "NinjaOne details"
+msgstr "Détails NinjaOne"
+
+msgid "Technical status"
+msgstr "Statut technique"
 
 msgid "First synchronization"
 msgstr "Première synchronisation"
@@ -140,6 +257,9 @@ msgstr "Dernier contact NinjaOne"
 msgid "Configuration"
 msgstr "Configuration"
 
+msgid "Organization"
+msgstr "Organisation"
+
 msgid "Node class"
 msgstr "Classe du noeud"
 
@@ -150,136 +270,223 @@ msgid "Last logged in user"
 msgstr "Dernier utilisateur connecté"
 
 msgid "Last raw payload"
-msgstr "Dernier payload brut"
+msgstr "Dernières données brutes"
+
+msgid "NinjaOne ID"
+msgstr "ID NinjaOne"
+
+msgid "Open in NinjaOne"
+msgstr "Ouvrir dans NinjaOne"
+
+msgid "Mapping error"
+msgstr "Erreur de liaison"
+
+msgid "Waiting link"
+msgstr "Liaison en attente"
+
+msgid "Stale sync"
+msgstr "Synchro ancienne"
+
+msgid "NinjaOne inventory"
+msgstr "Inventaire NinjaOne"
+
+msgid "NinjaOne linked"
+msgstr "Lié à NinjaOne"
+
+msgid "Technical status: %s. Last synchronization: %s"
+msgstr "Statut technique : %s. Dernière synchronisation : %s"
 
 msgid "No payload stored yet."
-msgstr "Aucun payload stocké pour le moment."
+msgstr "Aucune donnée brute stockée pour le moment."
+
+msgid "NinjaOne configuration not found."
+msgstr "Configuration NinjaOne introuvable."
+
+msgid "NinjaOne location mapping not found."
+msgstr "Mappage de lieu NinjaOne introuvable."
+
+msgid "GLPI location created and mapped."
+msgstr "Lieu GLPI créé et mappé."
+
+msgid "Unable to create GLPI location. Check that the parent NinjaOne organization is mapped to a GLPI entity."
+msgstr "Impossible de créer le lieu GLPI. Vérifiez que l'organisation NinjaOne parente est mappée à une entité GLPI."
+
+msgid "Mapping was saved but synchronization was not enabled because no GLPI location was selected."
+msgstr "Le mappage a été enregistré, mais la synchronisation n'a pas été activée car aucun lieu GLPI n'a été sélectionné."
+
+msgid "NinjaOne location mapping saved."
+msgstr "Mappage de lieu NinjaOne enregistré."
 
 msgid "Sync enabled"
+msgstr "Synchro active"
+
+msgid "Sync Enabled"
 msgstr "Synchro active"
 
 msgid "NinjaOne location"
 msgstr "Lieu NinjaOne"
 
-msgid "NinjaOne organization"
-msgstr "Organisation NinjaOne"
-
 msgid "GLPI location"
 msgstr "Lieu GLPI"
+
+msgid "Select location"
+msgstr "Sélectionner un lieu"
+
+msgid "Ready"
+msgstr "Prêt"
+
+msgid "Organization required"
+msgstr "Organisation requise"
+
+msgid "Mapped but disabled"
+msgstr "Mappé mais désactivé"
 
 msgid "Available to map"
 msgstr "Disponible au mappage"
 
-msgid ""
-msgstr ""
-"Project-Id-Version: NinjaOne connector\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Language: fr_FR\n"
+msgid "No NinjaOne location discovered yet. Run synchronization first."
+msgstr "Aucun lieu NinjaOne découvert pour le moment. Lancez d'abord une synchronisation."
 
-msgid "NinjaOne connector"
-msgstr "Connecteur NinjaOne"
+msgid "Unable to generate NinjaOne script: "
+msgstr "Impossible de générer le script NinjaOne : "
 
-msgid "NinjaOne connection"
-msgstr "Connexion NinjaOne"
+msgid "NinjaOne automation script"
+msgstr "Script d'automatisation NinjaOne"
 
-msgid "Base URL"
-msgstr "URL de base"
+msgid "Generate a PowerShell script that runs GLPI Agent portable from NinjaOne."
+msgstr "Générer un script PowerShell qui exécute GLPI Agent portable depuis NinjaOne."
 
-msgid "Scopes"
-msgstr "Portées"
+msgid "Script variables"
+msgstr "Variables du script"
 
-msgid "Client ID"
-msgstr "ID client"
+msgid "GLPI base URL"
+msgstr "URL de base GLPI"
 
-msgid "Client secret"
-msgstr "Secret client"
+msgid "Used to build /front/inventory.php when no final inventory URL is set."
+msgstr "Utilisée pour construire /front/inventory.php lorsqu'aucune URL d'inventaire finale n'est renseignée."
 
-msgid "A client secret is stored. Leave this field empty to keep it unchanged."
-msgstr "Un secret client est enregistré. Laissez ce champ vide pour le conserver."
+msgid "Inventory endpoint URL"
+msgstr "URL du point d'entrée d'inventaire"
 
-msgid "No client secret is stored yet."
-msgstr "Aucun secret client n'est encore enregistré."
+msgid "Leave empty to use GLPI base URL + /front/inventory.php."
+msgstr "Laissez vide pour utiliser l'URL de base GLPI + /front/inventory.php."
 
-msgid "Redirect URL"
-msgstr "URL de redirection"
+msgid "GLPI Agent ZIP source"
+msgstr "Source ZIP de GLPI Agent"
 
-msgid "NinjaOne machine-to-machine credentials are configured."
-msgstr "Les identifiants machine à machine NinjaOne sont configurés."
+msgid "Inventory tag"
+msgstr "Étiquette d'inventaire"
 
-msgid "NinjaOne client secret is missing. Create a Services API client with Client Credentials."
-msgstr "Le secret client NinjaOne est manquant. Créez un client Services API avec les identifiants client."
+msgid "The script appends the NinjaOne node ID when available."
+msgstr "Le script ajoute l'ID du noeud NinjaOne lorsqu'il est disponible."
 
-msgid "Organization management"
-msgstr "Gestion des organisations"
+msgid "Proxy URL"
+msgstr "URL du proxy"
 
-msgid "Organization mode"
-msgstr "Mode organisation"
+msgid "CA certificate file"
+msgstr "Fichier de certificat CA"
 
-msgid "Single organization"
-msgstr "Organisation unique"
+msgid "SSL fingerprint"
+msgstr "Empreinte SSL"
 
-msgid "Multi organization"
-msgstr "Multi-organisation"
+msgid "Archive successful inventories locally"
+msgstr "Archiver localement les inventaires réussis"
 
-msgid "NinjaOne organization"
-msgstr "Organisation NinjaOne"
+msgid "Disable SSL certificate verification"
+msgstr "Désactiver la vérification du certificat SSL"
 
-msgid "Select organization"
-msgstr "Sélectionner une organisation"
+msgid "Generate script"
+msgstr "Générer le script"
 
-msgid "GLPI entity"
-msgstr "Entité GLPI"
+msgid "Generated PowerShell"
+msgstr "PowerShell généré"
 
-msgid "Select entity"
-msgstr "Sélectionner une entité"
+msgid "Copy script"
+msgstr "Copier le script"
 
-msgid "Run a synchronization once to discover NinjaOne organizations."
-msgstr "Lancez une synchronisation une première fois pour découvrir les organisations NinjaOne."
+msgid "Copied"
+msgstr "Copié"
 
-msgid "Map organizations"
-msgstr "Mapper les organisations"
+msgid "NinjaOne is already authorized. Use reconnect only if you need to renew the token."
+msgstr "NinjaOne est déjà autorisé. Utilisez la reconnexion uniquement si vous devez renouveler le jeton."
 
-msgid "Scheduling"
-msgstr "Planification"
+msgid "NinjaOne authorization failed: "
+msgstr "Échec de l'autorisation NinjaOne : "
 
-msgid "Run at"
-msgstr "Exécuter à"
+msgid "NinjaOne authorization callback was already processed or expired."
+msgstr "Le retour d'autorisation NinjaOne a déjà été traité ou a expiré."
 
-msgid "Repeat every"
-msgstr "Répéter toutes les"
+msgid "NinjaOne authorization successful."
+msgstr "Autorisation NinjaOne réussie."
 
-msgid "hours"
-msgstr "heures"
+msgid "NinjaOne authorization returned no refresh token. Token response keys: "
+msgstr "L'autorisation NinjaOne n'a retourné aucun jeton de rafraîchissement. Clés de réponse du jeton : "
 
-msgid "Leave the repeat field empty to run once per day at the configured time."
-msgstr "Laissez le champ de répétition vide pour exécuter une fois par jour à l'heure configurée."
+msgid "NinjaOne device payloads"
+msgstr "Données des appareils NinjaOne"
 
-msgid "The GLPI automatic action NinjaoneSync runs from GLPI cron and applies this schedule."
-msgstr "L'action automatique GLPI NinjaoneSync est exécutée par le cron GLPI et applique cette planification."
+msgid "Payload not found"
+msgstr "Données introuvables"
 
-msgid "Test NinjaOne connection"
-msgstr "Tester la connexion NinjaOne"
+msgid "Device mapping"
+msgstr "Mappage d'appareil"
 
-msgid "Run NinjaOne synchronization"
-msgstr "Lancer la synchronisation NinjaOne"
+msgid "No JSON payload stored for this device yet."
+msgstr "Aucune donnée JSON n'est encore stockée pour cet appareil."
 
-msgid "Map locations"
-msgstr "Mapper les lieux"
+msgid "Available keys"
+msgstr "Clés disponibles"
 
-msgid "Inspect device payloads"
-msgstr "Inspecter les données des appareils"
+msgid "Raw payload"
+msgstr "Données brutes"
 
-msgid "Logs"
-msgstr "Journaux"
+msgid "NinjaOne device ID"
+msgstr "ID de l'appareil NinjaOne"
 
-msgid "NinjaOne connection successful. Organization sample count: %d"
-msgstr "Connexion NinjaOne réussie. Nombre d'organisations échantillon : %d"
+msgid "Location"
+msgstr "Lieu"
 
-msgid "NinjaOne connection failed: "
-msgstr "Échec de la connexion NinjaOne : "
+msgid "GLPI computer"
+msgstr "Ordinateur GLPI"
 
-msgid "NinjaOne synchronization finished: %d created, %d updated, %d skipped, %d errors."
-msgstr "Synchronisation NinjaOne terminée : %d créé(s), %d mis à jour, %d ignoré(s), %d erreur(s)."
+msgid "Inspect"
+msgstr "Inspecter"
 
-msgid "NinjaOne synchronization failed: "
-msgstr "Échec de la synchronisation NinjaOne : "
+msgid "No stored device payload found. Run a synchronization first."
+msgstr "Aucune donnée d'appareil stockée. Lancez d'abord une synchronisation."
+
+msgid "No organization selected."
+msgstr "Aucune organisation sélectionnée."
+
+msgid "No GLPI entity selected for bulk enable."
+msgstr "Aucune entité GLPI sélectionnée pour l'activation en masse."
+
+msgid "Bulk organization mapping applied."
+msgstr "Mappage d'organisations appliqué en masse."
+
+msgid "Mapping was saved but synchronization was not enabled because no GLPI entity was selected."
+msgstr "Le mappage a été enregistré, mais la synchronisation n'a pas été activée car aucune entité GLPI n'a été sélectionnée."
+
+msgid "NinjaOne organization mapping saved."
+msgstr "Mappage d'organisation NinjaOne enregistré."
+
+msgid "Run asset synchronization"
+msgstr "Lancer la synchronisation des assets"
+
+msgid "Enable selected with entity"
+msgstr "Activer la sélection avec l'entité"
+
+msgid "Disable selected"
+msgstr "Désactiver la sélection"
+
+msgid "Apply to selected"
+msgstr "Appliquer à la sélection"
+
+msgid "Selection"
+msgstr "Sélection"
+
+msgid "Not mapped"
+msgstr "Non mappé"
+
+msgid "No NinjaOne organization discovered yet. Run synchronization first."
+msgstr "Aucune organisation NinjaOne découverte pour le moment. Lancez d'abord une synchronisation."

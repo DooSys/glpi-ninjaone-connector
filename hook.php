@@ -24,8 +24,8 @@ function plugin_ninjaone_install(): bool
             `oauth_state` varchar(128) NULL,
             `organization_mode` varchar(20) NOT NULL DEFAULT 'multi',
             `single_ninjaone_organization_id` bigint unsigned NULL,
-            `sync_time` time NULL DEFAULT '02:00:00',
-            `sync_repeat_hours` int unsigned NULL,
+            `inventory_mode` varchar(20) NOT NULL DEFAULT 'mapping_only',
+            `sync_stale_days` int unsigned NOT NULL DEFAULT 20,
             `last_scheduled_sync_at` timestamp NULL DEFAULT NULL,
             `is_active` tinyint NOT NULL DEFAULT 0,
             `last_token_refresh` timestamp NULL DEFAULT NULL,
@@ -167,8 +167,8 @@ function plugin_ninjaone_install(): bool
             'oauth_state'      => "varchar(128) NULL",
             'organization_mode' => "varchar(20) NOT NULL DEFAULT 'multi'",
             'single_ninjaone_organization_id' => "bigint unsigned NULL",
-            'sync_time' => "time NULL DEFAULT '02:00:00'",
-            'sync_repeat_hours' => "int unsigned NULL",
+            'inventory_mode' => "varchar(20) NOT NULL DEFAULT 'mapping_only'",
+            'sync_stale_days' => "int unsigned NOT NULL DEFAULT 20",
             'last_scheduled_sync_at' => "timestamp NULL DEFAULT NULL",
         ];
 
@@ -218,15 +218,32 @@ function plugin_ninjaone_register_cron_task(): void
         }
     }
 
-    $frequency = MINUTE_TIMESTAMP;
+    $purge_itemtype = 'GlpiPlugin\\Ninjaone\\Cron\\NinjaOneLogPurge';
+    if (!class_exists($purge_itemtype)) {
+        $purge_cron_file = __DIR__ . '/src/Cron/NinjaOneLogPurge.php';
+        if (file_exists($purge_cron_file)) {
+            require_once $purge_cron_file;
+        }
+    }
+
+    $frequency = 12 * HOUR_TIMESTAMP;
     $options = [
-        'comment'   => 'Synchronize NinjaOne inventory using the schedule configured in the NinjaOne connector.',
+        'comment'   => 'Synchronizes active NinjaOne connector configurations twice a day. Use the connector page button for an immediate manual synchronization.',
         'mode'      => CronTask::MODE_EXTERNAL,
         'allowmode' => CronTask::MODE_INTERNAL | CronTask::MODE_EXTERNAL,
         'state'     => CronTask::STATE_WAITING,
     ];
 
     CronTask::Register($itemtype, 'NinjaoneSync', $frequency, $options);
+
+    $purge_frequency = 3 * DAY_TIMESTAMP;
+    $purge_options = [
+        'comment'   => 'Purge NinjaOne synchronization logs older than 30 days.',
+        'mode'      => CronTask::MODE_EXTERNAL,
+        'allowmode' => CronTask::MODE_INTERNAL | CronTask::MODE_EXTERNAL,
+        'state'     => CronTask::STATE_WAITING,
+    ];
+    CronTask::Register($purge_itemtype, 'NinjaoneLogPurge', $purge_frequency, $purge_options);
 
     if ($DB->tableExists('glpi_crontasks')) {
         $DB->update(
@@ -241,6 +258,18 @@ function plugin_ninjaone_register_cron_task(): void
             ],
             ['name' => 'NinjaoneSync']
         );
+        $DB->update(
+            'glpi_crontasks',
+            [
+                'itemtype'  => $purge_itemtype,
+                'frequency' => $purge_frequency,
+                'mode'      => CronTask::MODE_EXTERNAL,
+                'allowmode' => CronTask::MODE_INTERNAL | CronTask::MODE_EXTERNAL,
+                'state'     => CronTask::STATE_WAITING,
+                'comment'   => $purge_options['comment'],
+            ],
+            ['name' => 'NinjaoneLogPurge']
+        );
     }
 }
 
@@ -249,6 +278,8 @@ function plugin_ninjaone_uninstall(): bool
     global $DB;
 
     CronTask::Unregister('Ninjaone');
+    CronTask::Unregister('NinjaoneSync');
+    CronTask::Unregister('NinjaoneLogPurge');
 
     $tables = [
         'synclogs',

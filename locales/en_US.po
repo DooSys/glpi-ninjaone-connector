@@ -83,14 +83,23 @@ msgstr "hours"
 msgid "Leave the repeat field empty to run once per day at the configured time."
 msgstr "Leave the repeat field empty to run once per day at the configured time."
 
-msgid "The GLPI automatic action NinjaoneSync runs from GLPI cron and applies this schedule."
-msgstr "The GLPI automatic action NinjaoneSync runs from the GLPI cron and applies this schedule."
+msgid "The GLPI automatic action runs the NinjaOne synchronization twice a day. Use the button below to force an immediate synchronization when needed."
+msgstr "The GLPI automatic action runs the NinjaOne synchronization twice a day. Use the button below to force an immediate synchronization when needed."
+
+msgid "Synchronize NinjaOne inventory twice a day"
+msgstr "Synchronize NinjaOne inventory twice a day"
 
 msgid "Test NinjaOne connection"
 msgstr "Test NinjaOne Connection"
 
 msgid "Run NinjaOne synchronization"
 msgstr "Run NinjaOne Synchronisation"
+
+msgid "Run synchronization now"
+msgstr "Run synchronization now"
+
+msgid "No active NinjaOne connection found."
+msgstr "No active NinjaOne connection found."
 
 msgid "Map locations"
 msgstr "Map Locations"
@@ -118,6 +127,51 @@ msgstr "NinjaOne device"
 
 msgid "Open in NinjaOne"
 msgstr "Open in NinjaOne"
+
+msgid "Advanced synchronization - GLPI Agent inventory through NinjaOne Automation"
+msgstr "Advanced synchronization - GLPI Agent inventory through NinjaOne Automation"
+
+msgid "Minimal synchronization - inventory based on NinjaOne"
+msgstr "Minimal synchronization - inventory based on NinjaOne"
+
+msgid "Open GLPI cron task"
+msgstr "Open GLPI cron task"
+
+msgid "Diagnostics"
+msgstr "Diagnostics"
+
+msgid "NinjaOne synchronization logs older than 30 days are purged every 3 days by the dedicated GLPI automatic action."
+msgstr "NinjaOne synchronization logs older than 30 days are purged every 3 days by the dedicated GLPI automatic action."
+
+msgid "Open log purge cron task"
+msgstr "Open log purge cron task"
+
+msgid "Purge NinjaOne synchronization logs older than 30 days"
+msgstr "Purge NinjaOne synchronization logs older than 30 days"
+
+msgid "Stale sync alert after"
+msgstr "Stale sync alert after"
+
+msgid "days"
+msgstr "days"
+
+msgid "Mapping error"
+msgstr "Mapping error"
+
+msgid "Waiting link"
+msgstr "Waiting link"
+
+msgid "Stale sync"
+msgstr "Stale sync"
+
+msgid "NinjaOne inventory"
+msgstr "NinjaOne inventory"
+
+msgid "NinjaOne linked"
+msgstr "NinjaOne linked"
+
+msgid "Technical status: %s. Last synchronization: %s"
+msgstr "Technical status: %s. Last synchronization: %s"
 
 msgid "NinjaOne devices"
 msgstr "NinjaOne devices"
