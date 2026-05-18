@@ -79,6 +79,7 @@ Adaptez le chemin si votre instance expose les plugins via `/plugins/ninjaone/`.
 ## Connexion GLPI
 
 Dans GLPI, ouvrir la page du plugin puis cliquer sur **Ajouter une connexion NinjaOne**.
+<img width="1624" height="156" alt="image" src="https://github.com/user-attachments/assets/60bed12a-a059-4cf3-a3b1-8be88ca8c0c1" />
 
 Renseigner :
 
@@ -89,12 +90,14 @@ Renseigner :
 - `Client secret` ;
 - URI de redirection si necessaire ;
 - etat actif ou inactif.
+<img width="1634" height="480" alt="image" src="https://github.com/user-attachments/assets/9361e663-d3b1-4f02-bbf3-4f7f6a67b676" />
 
 Le bloc **Connexion NinjaOne** permet ensuite de :
 
 - sauvegarder la connexion ;
 - tester la connexion API ;
 - lancer une synchronisation manuelle.
+<img width="685" height="139" alt="image" src="https://github.com/user-attachments/assets/328cc14a-8f4e-4d41-a5ff-5bd0ca8e31a6" />
 
 ## Organisations
 
@@ -122,6 +125,7 @@ Les organisations nouvellement decouvertes sont creees desactivees par defaut. E
 Les locations NinjaOne peuvent etre associees a des lieux GLPI.
 
 Le mapping des lieux sert notamment a renseigner le champ lieu des ordinateurs GLPI lors de la synchronisation. Un lieu peut etre selectionne manuellement ou cree depuis la page de mapping lorsque l'organisation parent est deja associee a une entite GLPI.
+<img width="1642" height="676" alt="image" src="https://github.com/user-attachments/assets/b2996031-9920-4e28-af8a-a59b8c08ed82" />
 
 ## Source d'inventaire
 
