@@ -22,9 +22,9 @@ function plugin_ninjaone_install(): bool
             `refresh_token` text NULL,
             `token_expires_at` timestamp NULL DEFAULT NULL,
             `oauth_state` varchar(128) NULL,
-            `organization_mode` varchar(20) NOT NULL DEFAULT 'multi',
-            `single_ninjaone_organization_id` bigint unsigned NULL,
-            `inventory_mode` varchar(20) NOT NULL DEFAULT 'mapping_only',
+            `organization_mode` varchar(20) NOT NULL DEFAULT 'single',
+            `single_ninjaone_organization_ref` bigint unsigned NULL,
+            `inventory_mode` varchar(20) NOT NULL DEFAULT 'full',
             `sync_stale_days` int unsigned NOT NULL DEFAULT 20,
             `last_scheduled_sync_at` timestamp NULL DEFAULT NULL,
             `is_active` tinyint NOT NULL DEFAULT 0,
@@ -40,14 +40,14 @@ function plugin_ninjaone_install(): bool
     if (!$DB->tableExists('glpi_plugin_ninjaone_organizationmappings')) {
         $query = "CREATE TABLE `glpi_plugin_ninjaone_organizationmappings` (
             `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
-            `plugin_ninjaone_configs_id` int {$default_key_sign} NOT NULL,
-            `ninjaone_organization_id` bigint unsigned NOT NULL,
+            `config_ref` int {$default_key_sign} NOT NULL,
+            `ninjaone_organization_ref` bigint unsigned NOT NULL,
             `ninjaone_organization_name` varchar(255) NOT NULL,
             `entities_id` int {$default_key_sign} NULL,
             `sync_enabled` tinyint NOT NULL DEFAULT 1,
             `last_sync_at` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
-            UNIQUE KEY `uniq_config_org` (`plugin_ninjaone_configs_id`, `ninjaone_organization_id`),
+            UNIQUE KEY `uniq_config_org` (`config_ref`, `ninjaone_organization_ref`),
             KEY `entities_id` (`entities_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC";
         $DB->doQuery($query);
@@ -56,15 +56,15 @@ function plugin_ninjaone_install(): bool
     if (!$DB->tableExists('glpi_plugin_ninjaone_locationmappings')) {
         $query = "CREATE TABLE `glpi_plugin_ninjaone_locationmappings` (
             `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
-            `plugin_ninjaone_configs_id` int {$default_key_sign} NOT NULL,
-            `ninjaone_organization_id` bigint unsigned NOT NULL,
-            `ninjaone_location_id` bigint unsigned NOT NULL,
+            `config_ref` int {$default_key_sign} NOT NULL,
+            `ninjaone_organization_ref` bigint unsigned NOT NULL,
+            `ninjaone_location_ref` bigint unsigned NOT NULL,
             `ninjaone_location_name` varchar(255) NOT NULL,
             `locations_id` int {$default_key_sign} NULL,
             `entities_id` int {$default_key_sign} NULL,
             `sync_enabled` tinyint NOT NULL DEFAULT 1,
             PRIMARY KEY (`id`),
-            UNIQUE KEY `uniq_config_location` (`plugin_ninjaone_configs_id`, `ninjaone_location_id`),
+            UNIQUE KEY `uniq_config_location` (`config_ref`, `ninjaone_location_ref`),
             KEY `locations_id` (`locations_id`),
             KEY `entities_id` (`entities_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC";
@@ -74,10 +74,10 @@ function plugin_ninjaone_install(): bool
     if (!$DB->tableExists('glpi_plugin_ninjaone_devicemappings')) {
         $query = "CREATE TABLE `glpi_plugin_ninjaone_devicemappings` (
             `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
-            `plugin_ninjaone_configs_id` int {$default_key_sign} NOT NULL,
-            `ninjaone_device_id` bigint unsigned NOT NULL,
-            `ninjaone_organization_id` bigint unsigned NULL,
-            `ninjaone_location_id` bigint unsigned NULL,
+            `config_ref` int {$default_key_sign} NOT NULL,
+            `ninjaone_device_ref` bigint unsigned NOT NULL,
+            `ninjaone_organization_ref` bigint unsigned NULL,
+            `ninjaone_location_ref` bigint unsigned NULL,
             `computers_id` int {$default_key_sign} NOT NULL DEFAULT 0,
             `first_sync_at` timestamp NULL DEFAULT NULL,
             `last_seen_at` timestamp NULL DEFAULT NULL,
@@ -86,7 +86,7 @@ function plugin_ninjaone_install(): bool
             `last_payload_json` mediumtext NULL,
             `sync_status` varchar(50) NOT NULL DEFAULT 'pending',
             PRIMARY KEY (`id`),
-            UNIQUE KEY `uniq_config_device` (`plugin_ninjaone_configs_id`, `ninjaone_device_id`),
+            UNIQUE KEY `uniq_config_device` (`config_ref`, `ninjaone_device_ref`),
             KEY `computers_id` (`computers_id`),
             KEY `sync_status` (`sync_status`)
         ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation} ROW_FORMAT=DYNAMIC";
@@ -96,7 +96,7 @@ function plugin_ninjaone_install(): bool
     if (!$DB->tableExists('glpi_plugin_ninjaone_synclogs')) {
         $query = "CREATE TABLE `glpi_plugin_ninjaone_synclogs` (
             `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
-            `plugin_ninjaone_configs_id` int {$default_key_sign} NULL,
+            `config_ref` int {$default_key_sign} NULL,
             `started_at` timestamp NULL DEFAULT NULL,
             `ended_at` timestamp NULL DEFAULT NULL,
             `status` varchar(50) NOT NULL DEFAULT 'running',
@@ -113,10 +113,86 @@ function plugin_ninjaone_install(): bool
         $DB->doQuery($query);
     }
 
+    if ($DB->tableExists('glpi_plugin_ninjaone_configs')
+        && $DB->fieldExists('glpi_plugin_ninjaone_configs', 'single_ninjaone_organization_id')
+        && !$DB->fieldExists('glpi_plugin_ninjaone_configs', 'single_ninjaone_organization_ref')) {
+        $DB->doQuery(
+            'ALTER TABLE `glpi_plugin_ninjaone_configs` '
+            . 'CHANGE `single_ninjaone_organization_id` `single_ninjaone_organization_ref` bigint unsigned NULL'
+        );
+    }
+
+    $config_tables = [
+        'glpi_plugin_ninjaone_organizationmappings' => 'int ' . $default_key_sign . ' NOT NULL',
+        'glpi_plugin_ninjaone_locationmappings'     => 'int ' . $default_key_sign . ' NOT NULL',
+        'glpi_plugin_ninjaone_devicemappings'       => 'int ' . $default_key_sign . ' NOT NULL',
+        'glpi_plugin_ninjaone_synclogs'             => 'int ' . $default_key_sign . ' NULL',
+    ];
+    foreach ($config_tables as $table => $definition) {
+        if ($DB->tableExists($table)
+            && $DB->fieldExists($table, 'plugin_ninjaone_configs_id')
+            && !$DB->fieldExists($table, 'config_ref')) {
+            $DB->doQuery(
+                "ALTER TABLE `$table` "
+                . "CHANGE `plugin_ninjaone_configs_id` `config_ref` $definition"
+            );
+        }
+    }
+
+    if ($DB->tableExists('glpi_plugin_ninjaone_organizationmappings')
+        && $DB->fieldExists('glpi_plugin_ninjaone_organizationmappings', 'ninjaone_organization_id')
+        && !$DB->fieldExists('glpi_plugin_ninjaone_organizationmappings', 'ninjaone_organization_ref')) {
+        $DB->doQuery(
+            'ALTER TABLE `glpi_plugin_ninjaone_organizationmappings` '
+            . 'CHANGE `ninjaone_organization_id` `ninjaone_organization_ref` bigint unsigned NOT NULL'
+        );
+    }
+
+    if ($DB->tableExists('glpi_plugin_ninjaone_locationmappings')) {
+        if ($DB->fieldExists('glpi_plugin_ninjaone_locationmappings', 'ninjaone_organization_id')
+            && !$DB->fieldExists('glpi_plugin_ninjaone_locationmappings', 'ninjaone_organization_ref')) {
+            $DB->doQuery(
+                'ALTER TABLE `glpi_plugin_ninjaone_locationmappings` '
+                . 'CHANGE `ninjaone_organization_id` `ninjaone_organization_ref` bigint unsigned NOT NULL'
+            );
+        }
+        if ($DB->fieldExists('glpi_plugin_ninjaone_locationmappings', 'ninjaone_location_id')
+            && !$DB->fieldExists('glpi_plugin_ninjaone_locationmappings', 'ninjaone_location_ref')) {
+            $DB->doQuery(
+                'ALTER TABLE `glpi_plugin_ninjaone_locationmappings` '
+                . 'CHANGE `ninjaone_location_id` `ninjaone_location_ref` bigint unsigned NOT NULL'
+            );
+        }
+    }
+
+    if ($DB->tableExists('glpi_plugin_ninjaone_devicemappings')) {
+        if ($DB->fieldExists('glpi_plugin_ninjaone_devicemappings', 'ninjaone_device_id')
+            && !$DB->fieldExists('glpi_plugin_ninjaone_devicemappings', 'ninjaone_device_ref')) {
+            $DB->doQuery(
+                'ALTER TABLE `glpi_plugin_ninjaone_devicemappings` '
+                . 'CHANGE `ninjaone_device_id` `ninjaone_device_ref` bigint unsigned NOT NULL'
+            );
+        }
+        if ($DB->fieldExists('glpi_plugin_ninjaone_devicemappings', 'ninjaone_organization_id')
+            && !$DB->fieldExists('glpi_plugin_ninjaone_devicemappings', 'ninjaone_organization_ref')) {
+            $DB->doQuery(
+                'ALTER TABLE `glpi_plugin_ninjaone_devicemappings` '
+                . 'CHANGE `ninjaone_organization_id` `ninjaone_organization_ref` bigint unsigned NULL'
+            );
+        }
+        if ($DB->fieldExists('glpi_plugin_ninjaone_devicemappings', 'ninjaone_location_id')
+            && !$DB->fieldExists('glpi_plugin_ninjaone_devicemappings', 'ninjaone_location_ref')) {
+            $DB->doQuery(
+                'ALTER TABLE `glpi_plugin_ninjaone_devicemappings` '
+                . 'CHANGE `ninjaone_location_id` `ninjaone_location_ref` bigint unsigned NULL'
+            );
+        }
+    }
+
     if ($DB->tableExists('glpi_plugin_ninjaone_organizationmappings')) {
         $DB->doQuery(
             'ALTER TABLE `glpi_plugin_ninjaone_organizationmappings` '
-            . 'MODIFY `ninjaone_organization_id` bigint unsigned NOT NULL'
+            . 'MODIFY `ninjaone_organization_ref` bigint unsigned NOT NULL'
         );
         $DB->doQuery(
             'ALTER TABLE `glpi_plugin_ninjaone_organizationmappings` '
@@ -127,11 +203,11 @@ function plugin_ninjaone_install(): bool
     if ($DB->tableExists('glpi_plugin_ninjaone_locationmappings')) {
         $DB->doQuery(
             'ALTER TABLE `glpi_plugin_ninjaone_locationmappings` '
-            . 'MODIFY `ninjaone_organization_id` bigint unsigned NOT NULL'
+            . 'MODIFY `ninjaone_organization_ref` bigint unsigned NOT NULL'
         );
         $DB->doQuery(
             'ALTER TABLE `glpi_plugin_ninjaone_locationmappings` '
-            . 'MODIFY `ninjaone_location_id` bigint unsigned NOT NULL'
+            . 'MODIFY `ninjaone_location_ref` bigint unsigned NOT NULL'
         );
         $DB->doQuery(
             'ALTER TABLE `glpi_plugin_ninjaone_locationmappings` '
@@ -146,28 +222,37 @@ function plugin_ninjaone_install(): bool
     if ($DB->tableExists('glpi_plugin_ninjaone_devicemappings')) {
         $DB->doQuery(
             'ALTER TABLE `glpi_plugin_ninjaone_devicemappings` '
-            . 'MODIFY `ninjaone_device_id` bigint unsigned NOT NULL'
+            . 'MODIFY `ninjaone_device_ref` bigint unsigned NOT NULL'
         );
         $DB->doQuery(
             'ALTER TABLE `glpi_plugin_ninjaone_devicemappings` '
-            . 'MODIFY `ninjaone_organization_id` bigint unsigned NULL'
+            . 'MODIFY `ninjaone_organization_ref` bigint unsigned NULL'
         );
         $DB->doQuery(
             'ALTER TABLE `glpi_plugin_ninjaone_devicemappings` '
-            . 'MODIFY `ninjaone_location_id` bigint unsigned NULL'
+            . 'MODIFY `ninjaone_location_ref` bigint unsigned NULL'
         );
     }
 
     if ($DB->tableExists('glpi_plugin_ninjaone_configs')) {
+        $DB->doQuery(
+            "ALTER TABLE `glpi_plugin_ninjaone_configs` "
+            . "MODIFY `scopes` varchar(255) NOT NULL DEFAULT 'monitoring'"
+        );
+        $DB->doQuery(
+            "UPDATE `glpi_plugin_ninjaone_configs` SET `scopes` = 'monitoring' "
+            . "WHERE `scopes` <> 'monitoring'"
+        );
+
         $fields = [
             'redirect_uri'     => "varchar(255) NULL",
             'access_token'     => "text NULL",
             'refresh_token'    => "text NULL",
             'token_expires_at' => "timestamp NULL DEFAULT NULL",
             'oauth_state'      => "varchar(128) NULL",
-            'organization_mode' => "varchar(20) NOT NULL DEFAULT 'multi'",
-            'single_ninjaone_organization_id' => "bigint unsigned NULL",
-            'inventory_mode' => "varchar(20) NOT NULL DEFAULT 'mapping_only'",
+            'organization_mode' => "varchar(20) NOT NULL DEFAULT 'single'",
+            'single_ninjaone_organization_ref' => "bigint unsigned NULL",
+            'inventory_mode' => "varchar(20) NOT NULL DEFAULT 'full'",
             'sync_stale_days' => "int unsigned NOT NULL DEFAULT 20",
             'last_scheduled_sync_at' => "timestamp NULL DEFAULT NULL",
         ];
@@ -277,9 +362,11 @@ function plugin_ninjaone_uninstall(): bool
 {
     global $DB;
 
-    CronTask::Unregister('Ninjaone');
-    CronTask::Unregister('NinjaoneSync');
-    CronTask::Unregister('NinjaoneLogPurge');
+    if ($DB->tableExists('glpi_crontasks')) {
+        $DB->delete('glpi_crontasks', [
+            'name' => ['Ninjaone', 'NinjaoneSync', 'NinjaoneLogPurge'],
+        ]);
+    }
 
     $tables = [
         'synclogs',

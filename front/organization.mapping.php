@@ -51,7 +51,7 @@ if (isset($_POST['bulk_action'])) {
             $DB->update(
                 'glpi_plugin_ninjaone_organizationmappings',
                 ['sync_enabled' => 0],
-                ['id' => $mapping_id, 'plugin_ninjaone_configs_id' => $config_id]
+                ['id' => $mapping_id, 'config_ref' => $config_id]
             );
             continue;
         }
@@ -60,7 +60,7 @@ if (isset($_POST['bulk_action'])) {
             $DB->update(
                 'glpi_plugin_ninjaone_organizationmappings',
                 ['entities_id' => $entities_id, 'sync_enabled' => 1],
-                ['id' => $mapping_id, 'plugin_ninjaone_configs_id' => $config_id]
+                ['id' => $mapping_id, 'config_ref' => $config_id]
             );
         }
     }
@@ -73,7 +73,11 @@ if (isset($_POST['save_single_mapping'])) {
     $mapping_id = (int) $_POST['save_single_mapping'];
     $submitted_entity = (string) ($_POST['row_entities_id'][$mapping_id] ?? '');
     $entities_id = $submitted_entity === '' ? null : (int) $submitted_entity;
+    $was_enabled = (int) ($_POST['row_was_enabled'][$mapping_id] ?? 0) === 1;
     $sync_enabled = (int) ($_POST['row_sync_enabled'][$mapping_id] ?? 0) === 1 ? 1 : 0;
+    if (!$was_enabled && $entities_id !== null) {
+        $sync_enabled = 1;
+    }
 
     if ($sync_enabled === 1 && $entities_id === null) {
         $sync_enabled = 0;
@@ -94,7 +98,7 @@ if (isset($_POST['save_single_mapping'])) {
         ],
         [
             'id'                          => $mapping_id,
-            'plugin_ninjaone_configs_id' => $config_id,
+            'config_ref' => $config_id,
         ]
     );
 
@@ -152,11 +156,11 @@ echo '</div>';
 
 echo '<div class="list-group list-group-flush">';
 
-$where = ['plugin_ninjaone_configs_id' => $config_id];
+$where = ['config_ref' => $config_id];
 $is_single_mode = ($config->fields['organization_mode'] ?? 'multi') === 'single';
 if ($is_single_mode
-    && (int) ($config->fields['single_ninjaone_organization_id'] ?? 0) > 0) {
-    $where['ninjaone_organization_id'] = (int) $config->fields['single_ninjaone_organization_id'];
+    && (int) ($config->fields['single_ninjaone_organization_ref'] ?? 0) > 0) {
+    $where['ninjaone_organization_ref'] = (int) $config->fields['single_ninjaone_organization_ref'];
 }
 
 echo '<form method="post" action="organization.mapping.php?config_id=' . $config_id . '">';
@@ -219,17 +223,18 @@ foreach ($rows as $row) {
 
     echo '<div class="col-md-1">';
     echo '<input type="hidden" name="row_sync_enabled[' . $id . ']" value="0">';
-    echo '<input class="form-check-input" type="checkbox" name="row_sync_enabled[' . $id . ']" value="1"'
+    echo '<input type="hidden" name="row_was_enabled[' . $id . ']" value="' . ($row_sync_enabled ? '1' : '0') . '">';
+    echo '<input class="form-check-input ninjaone-sync-checkbox" type="checkbox" name="row_sync_enabled[' . $id . ']" value="1"'
         . ($row_sync_enabled ? ' checked' : '') . '>';
     echo '</div>';
 
     echo '<div class="col-md-3">';
     echo '<div class="fw-semibold">' . htmlspecialchars((string) $row['ninjaone_organization_name'], ENT_QUOTES, 'UTF-8') . '</div>';
-    echo '<div class="text-muted small">' . __('NinjaOne ID', 'ninjaone') . ': <code>' . (int) $row['ninjaone_organization_id'] . '</code></div>';
+    echo '<div class="text-muted small">' . __('NinjaOne ID', 'ninjaone') . ': <code>' . (int) $row['ninjaone_organization_ref'] . '</code></div>';
     echo '</div>';
 
     echo '<div class="col-md-4">';
-    echo '<select class="form-select" name="row_entities_id[' . $id . ']">';
+    echo '<select class="form-select ninjaone-mapping-select" name="row_entities_id[' . $id . ']">';
     echo '<option value=""' . ($row['entities_id'] === null ? ' selected' : '') . '>'
         . __('Select entity', 'ninjaone')
         . '</option>';
@@ -280,5 +285,19 @@ echo '</div>';
 
 echo '</div>';
 echo '</div>';
+
+echo '<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".ninjaone-mapping-select").forEach(function (select) {
+        select.addEventListener("change", function () {
+            const row = select.closest(".list-group-item");
+            const checkbox = row ? row.querySelector(".ninjaone-sync-checkbox") : null;
+            if (checkbox && select.value !== "") {
+                checkbox.checked = true;
+            }
+        });
+    });
+});
+</script>';
 
 Html::footer();

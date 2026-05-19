@@ -58,7 +58,7 @@ if ($mapping_id > 0) {
         $payload = json_decode((string) ($row['last_payload_json'] ?? ''), true);
         echo '<h4>' . __('Device mapping', 'ninjaone') . ' #' . (int) $row['id'] . '</h4>';
         echo '<p class="text-muted mb-3">';
-        echo 'NinjaOne device ID: ' . (int) $row['ninjaone_device_id'];
+        echo 'NinjaOne device ID: ' . (int) $row['ninjaone_device_ref'];
         echo ' | GLPI computer ID: ' . (int) $row['computers_id'];
         echo ' | Status: ' . htmlspecialchars((string) $row['sync_status'], ENT_QUOTES, 'UTF-8');
         echo '</p>';
@@ -88,7 +88,7 @@ if ($mapping_id > 0) {
 } else {
     $where = [];
     if ($config_id > 0) {
-        $where['plugin_ninjaone_configs_id'] = $config_id;
+        $where['config_ref'] = $config_id;
     }
 
     $rows = $DB->request([
@@ -117,9 +117,9 @@ if ($mapping_id > 0) {
         }
         $count++;
         echo '<tr>';
-        echo '<td>' . (int) $row['ninjaone_device_id'] . '</td>';
-        echo '<td>' . htmlspecialchars((string) $row['ninjaone_organization_id'], ENT_QUOTES, 'UTF-8') . '</td>';
-        echo '<td>' . htmlspecialchars((string) $row['ninjaone_location_id'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . (int) $row['ninjaone_device_ref'] . '</td>';
+        echo '<td>' . htmlspecialchars((string) $row['ninjaone_organization_ref'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars((string) $row['ninjaone_location_ref'], ENT_QUOTES, 'UTF-8') . '</td>';
         echo '<td>' . (int) $row['computers_id'] . '</td>';
         echo '<td>' . htmlspecialchars((string) $row['sync_status'], ENT_QUOTES, 'UTF-8') . '</td>';
         echo '<td>' . htmlspecialchars((string) $row['last_sync_at'], ENT_QUOTES, 'UTF-8') . '</td>';

@@ -33,13 +33,13 @@ function plugin_ninjaone_get_organizations_for_select(int $config_id): array
 
     $organizations = [];
     $rows = $DB->request([
-        'SELECT' => ['ninjaone_organization_id', 'ninjaone_organization_name', 'entities_id'],
+        'SELECT' => ['ninjaone_organization_ref', 'ninjaone_organization_name', 'entities_id'],
         'FROM'   => 'glpi_plugin_ninjaone_organizationmappings',
-        'WHERE'  => ['plugin_ninjaone_configs_id' => $config_id],
+        'WHERE'  => ['config_ref' => $config_id],
         'ORDER'  => 'ninjaone_organization_name',
     ]);
     foreach ($rows as $row) {
-        $organizations[(int) $row['ninjaone_organization_id']] = $row;
+        $organizations[(int) $row['ninjaone_organization_ref']] = $row;
     }
 
     return $organizations;
@@ -54,14 +54,14 @@ function plugin_ninjaone_apply_single_organization_mode(int $config_id, array $i
         return;
     }
 
-    $organization_id = (int) ($input['single_ninjaone_organization_id'] ?? 0);
+    $organization_id = (int) ($input['single_ninjaone_organization_ref'] ?? 0);
     $submitted_entity = (string) ($input['single_entities_id'] ?? '');
     $entities_id = $submitted_entity === '' ? null : (int) $submitted_entity;
 
     $DB->update(
         'glpi_plugin_ninjaone_organizationmappings',
         ['sync_enabled' => 0],
-        ['plugin_ninjaone_configs_id' => $config_id]
+        ['config_ref' => $config_id]
     );
 
     if ($organization_id <= 0 || $entities_id === null) {
@@ -75,8 +75,8 @@ function plugin_ninjaone_apply_single_organization_mode(int $config_id, array $i
             'sync_enabled' => 1,
         ],
         [
-            'plugin_ninjaone_configs_id' => $config_id,
-            'ninjaone_organization_id'   => $organization_id,
+            'config_ref' => $config_id,
+            'ninjaone_organization_ref'   => $organization_id,
         ]
     );
 }
@@ -203,13 +203,13 @@ if ($id > 0) {
         'base_url'      => 'https://eu.ninjarmm.com',
         'client_id'     => '',
         'client_secret' => '',
-        'scopes'        => 'monitoring',
+        'scopes'        => Config::DEFAULT_SCOPES,
         'redirect_uri'  => Config::getDefaultRedirectUri(),
         'refresh_token' => '',
         'is_active'     => 1,
-        'organization_mode' => 'multi',
-        'single_ninjaone_organization_id' => null,
-        'inventory_mode' => 'mapping_only',
+        'organization_mode' => 'single',
+        'single_ninjaone_organization_ref' => null,
+        'inventory_mode' => 'full',
         'sync_stale_days' => 20,
     ];
 }
@@ -218,15 +218,15 @@ $organizations = (int) ($config->fields['id'] ?? 0) > 0
     ? plugin_ninjaone_get_organizations_for_select((int) $config->fields['id'])
     : [];
 $entities = plugin_ninjaone_get_entities_for_select();
-$organization_mode = (string) ($config->fields['organization_mode'] ?? 'multi');
+$organization_mode = (string) ($config->fields['organization_mode'] ?? 'single');
 if (!in_array($organization_mode, ['single', 'multi'], true)) {
-    $organization_mode = 'multi';
+    $organization_mode = 'single';
 }
-$inventory_mode = (string) ($config->fields['inventory_mode'] ?? 'mapping_only');
+$inventory_mode = (string) ($config->fields['inventory_mode'] ?? 'full');
 if (!in_array($inventory_mode, ['mapping_only', 'full'], true)) {
-    $inventory_mode = 'mapping_only';
+    $inventory_mode = 'full';
 }
-$single_organization_id = (int) ($config->fields['single_ninjaone_organization_id'] ?? 0);
+$single_organization_id = (int) ($config->fields['single_ninjaone_organization_ref'] ?? 0);
 $single_entity_id = null;
 if ($single_organization_id > 0 && isset($organizations[$single_organization_id])) {
     $single_entity_id = $organizations[$single_organization_id]['entities_id'] === null
@@ -256,6 +256,25 @@ echo '<style>
 }
 .plugin-ninjaone-config-block-header h4 {
     margin: 0;
+}
+.plugin-ninjaone-dirty-indicator {
+    align-items: center;
+    color: var(--tblr-warning, #f59f00);
+    display: none;
+    font-size: .875rem;
+    gap: .4rem;
+    margin: -.35rem 0 1rem;
+}
+.plugin-ninjaone-dirty-indicator::before {
+    background: var(--tblr-warning, #f59f00);
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    height: .55rem;
+    width: .55rem;
+}
+.plugin-ninjaone-dirty-indicator.is-visible {
+    display: flex;
 }
 </style>';
 echo '<form method="post" action="' . Config::getFormURL(false) . '">';
@@ -287,8 +306,21 @@ echo '<input class="form-control" type="text" name="base_url" value="' . htmlspe
 echo '</div>';
 
 echo '<div class="col-md-6">';
-echo '<label class="form-label">' . __('Scopes', 'ninjaone') . '</label>';
-echo '<input class="form-control" type="text" name="scopes" value="' . htmlspecialchars((string) ($config->fields['scopes'] ?? 'monitoring'), ENT_QUOTES, 'UTF-8') . '">';
+echo '<label class="form-label">' . __('NinjaOne API scopes', 'ninjaone') . '</label>';
+echo '<input type="hidden" name="scopes" value="' . Config::DEFAULT_SCOPES . '">';
+echo '<div class="d-flex flex-column gap-2">';
+echo '<label class="form-check mb-0">';
+echo '<input class="form-check-input" type="checkbox" checked disabled>';
+echo '<span class="form-check-label">' . __('Monitoring', 'ninjaone') . '</span>';
+echo '</label>';
+foreach (['Management' => __('Management', 'ninjaone'), 'Control' => __('Control', 'ninjaone')] as $scope_label) {
+    echo '<label class="form-check mb-0 text-muted">';
+    echo '<input class="form-check-input" type="checkbox" disabled>';
+    echo '<span class="form-check-label">' . $scope_label . '</span>';
+    echo '</label>';
+}
+echo '</div>';
+echo '<div class="form-text">' . __('Aujourd hui : scope Monitoring uniquement. Gestion et Controle plus tard.', 'ninjaone') . '</div>';
 echo '</div>';
 
 echo '<div class="col-md-6">';
@@ -298,12 +330,15 @@ echo '</div>';
 
 echo '<div class="col-md-6">';
 echo '<label class="form-label">' . __('Client secret', 'ninjaone') . '</label>';
-echo '<input class="form-control" type="password" name="client_secret" value="" autocomplete="new-password">';
+$has_secret = (int) ($config->fields['id'] ?? 0) > 0 && !empty($config->fields['client_secret']);
+$secret_marker = '********************************';
+echo '<input class="form-control" type="password" name="client_secret" value="'
+    . ($has_secret ? $secret_marker : '')
+    . '" autocomplete="new-password">';
 if ((int) ($config->fields['id'] ?? 0) > 0) {
-    $has_secret = !empty($config->fields['client_secret']);
     echo '<div class="form-text">';
     echo $has_secret
-        ? __('A client secret is stored. Leave this field empty to keep it unchanged.', 'ninjaone')
+        ? __('A client secret is stored. Leave the hidden value unchanged to keep it.', 'ninjaone')
         : __('No client secret is stored yet.', 'ninjaone');
     echo '</div>';
 }
@@ -345,6 +380,9 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
     echo '<div class="plugin-ninjaone-config-block-header rounded-top">';
     echo '<h4>' . __('Organization management', 'ninjaone') . '</h4>';
     echo '</div>';
+    echo '<div class="plugin-ninjaone-dirty-indicator" data-ninjaone-dirty-indicator>';
+    echo __('Un changement a ete detecte, merci de sauvegarder.', 'ninjaone');
+    echo '</div>';
 
     echo '<div class="row g-3">';
     echo '<div class="col-md-4">';
@@ -358,7 +396,7 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
     if ($organization_mode === 'single') {
         echo '<div class="col-md-4">';
         echo '<label class="form-label">' . __('NinjaOne organization', 'ninjaone') . '</label>';
-        echo '<select class="form-select" name="single_ninjaone_organization_id">';
+        echo '<select class="form-select" name="single_ninjaone_organization_ref">';
         echo '<option value="">' . __('Select organization', 'ninjaone') . '</option>';
         foreach ($organizations as $organization_id => $organization) {
             echo '<option value="' . $organization_id . '"'
@@ -390,6 +428,8 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
     echo '<button class="btn btn-primary" type="submit" name="update" value="organizations">' . _x('button', 'Save') . '</button>';
     if ($organizations !== [] && $organization_mode === 'multi') {
         echo '<a class="btn btn-outline-primary" href="organization.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map organizations', 'ninjaone') . '</a>';
+    }
+    if ($organizations !== []) {
         echo '<a class="btn btn-outline-primary" href="location.mapping.php?config_id=' . (int) $config->fields['id'] . '">' . __('Map locations', 'ninjaone') . '</a>';
     }
     echo '</div>';
@@ -399,12 +439,15 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
     echo '<div class="plugin-ninjaone-config-block-header rounded-top">';
     echo '<h4>' . __('Inventory source', 'ninjaone') . '</h4>';
     echo '</div>';
+    echo '<div class="plugin-ninjaone-dirty-indicator" data-ninjaone-dirty-indicator>';
+    echo __('Un changement a ete detecte, merci de sauvegarder.', 'ninjaone');
+    echo '</div>';
     echo '<div class="row g-3">';
     echo '<div class="col-md-6">';
     echo '<label class="form-label">' . __('NinjaOne synchronization mode', 'ninjaone') . '</label>';
-    echo '<select class="form-select" name="inventory_mode">';
-    echo '<option value="mapping_only"' . ($inventory_mode === 'mapping_only' ? ' selected' : '') . '>' . __('Advanced synchronization - GLPI Agent inventory through NinjaOne Automation', 'ninjaone') . '</option>';
+    echo '<select class="form-select" name="inventory_mode" id="plugin_ninjaone_inventory_mode">';
     echo '<option value="full"' . ($inventory_mode === 'full' ? ' selected' : '') . '>' . __('Minimal synchronization - inventory based on NinjaOne', 'ninjaone') . '</option>';
+    echo '<option value="mapping_only"' . ($inventory_mode === 'mapping_only' ? ' selected' : '') . '>' . __('Advanced synchronization - GLPI Agent inventory through NinjaOne Automation', 'ninjaone') . '</option>';
     echo '</select>';
     echo '</div>';
     echo '<div class="col-md-3">';
@@ -415,15 +458,24 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
     echo '</div>';
     echo '</div>';
     echo '<div class="col-md-3 d-flex align-items-end">';
-    echo '<div class="alert alert-info py-2 px-3 mb-0 w-100">';
-    echo __('Mapping only keeps NinjaOne identity, organization, location, last contact and serial while GLPI Agent updates hardware, OS and software.', 'ninjaone');
+    $ninjaone_inventory_help = __('The NinjaOne inventory mode creates or updates computers from NinjaOne with the name, serial number, last contact and the basic inventory data available through the NinjaOne API.', 'ninjaone');
+    $glpi_agent_inventory_help = __('The GLPI Agent mode keeps NinjaOne as the link and orchestration source, while GLPI Agent performs the complete GLPI inventory: hardware, operating system, software and the detailed inventory options supported by GLPI.', 'ninjaone');
+    echo '<div id="plugin_ninjaone_inventory_help" class="alert alert-info py-2 px-3 mb-0 w-100" data-full="'
+        . htmlspecialchars($ninjaone_inventory_help, ENT_QUOTES, 'UTF-8')
+        . '" data-mapping-only="'
+        . htmlspecialchars($glpi_agent_inventory_help, ENT_QUOTES, 'UTF-8')
+        . '">';
+    echo $inventory_mode === 'full'
+        ? $ninjaone_inventory_help
+        : $glpi_agent_inventory_help;
     echo '</div>';
     echo '</div>';
     echo '<div class="col-md-12 d-flex flex-wrap gap-2">';
     echo '<button class="btn btn-primary" type="submit" name="update" value="inventory">' . _x('button', 'Save') . '</button>';
     if ($inventory_mode === 'mapping_only') {
-        echo '<a class="btn btn-outline-primary" href="ninjaone.script.php">' . __('Generate NinjaOne automation script', 'ninjaone') . '</a>';
+        echo '<a class="btn btn-outline-primary" href="ninjaone.script.php?config_id=' . (int) $config->fields['id'] . '">' . __('Generate NinjaOne automation script', 'ninjaone') . '</a>';
     }
+    echo '<a class="btn btn-outline-secondary" href="https://support.tinisys.fr/front/ruleimportasset.php">' . __('Open GLPI asset import rules', 'ninjaone') . '</a>';
     echo '</div>';
     echo '</div>';
     echo '</div>';
@@ -458,6 +510,36 @@ if ((int) ($config->fields['id'] ?? 0) > 0) {
     echo '</div>';
     echo '</div>';
 }
+
+echo '<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const inventoryMode = document.getElementById("plugin_ninjaone_inventory_mode");
+    const inventoryHelp = document.getElementById("plugin_ninjaone_inventory_help");
+    if (inventoryMode && inventoryHelp) {
+        const refreshInventoryHelp = function () {
+            inventoryHelp.textContent = inventoryMode.value === "full"
+                ? inventoryHelp.dataset.full
+                : inventoryHelp.dataset.mappingOnly;
+        };
+        inventoryMode.addEventListener("change", refreshInventoryHelp);
+        refreshInventoryHelp();
+    }
+
+    document.querySelectorAll("#plugin_ninjaone_config_organizations, #plugin_ninjaone_config_inventory").forEach(function (section) {
+        const indicator = section.querySelector("[data-ninjaone-dirty-indicator]");
+        if (!indicator) {
+            return;
+        }
+        const showIndicator = function () {
+            indicator.classList.add("is-visible");
+        };
+        section.querySelectorAll("input, select, textarea").forEach(function (field) {
+            field.addEventListener("change", showIndicator);
+            field.addEventListener("input", showIndicator);
+        });
+    });
+});
+</script>';
 
 echo '<div class="d-flex flex-wrap gap-2">';
 echo '<a class="btn btn-outline-secondary" href="' . Config::getSearchURL(false) . '">' . __('Cancel') . '</a>';

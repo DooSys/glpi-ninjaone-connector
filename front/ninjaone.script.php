@@ -10,6 +10,10 @@ Session::checkRight('config', UPDATE);
 $values = $_SERVER['REQUEST_METHOD'] === 'POST'
     ? NinjaOneScriptGenerator::normalizeInput($_POST)
     : NinjaOneScriptGenerator::defaults();
+$config_id = (int) ($_GET['config_id'] ?? $_POST['config_id'] ?? 0);
+$back_url = $config_id > 0
+    ? Config::getFormURLWithID($config_id) . '#plugin_ninjaone_config_inventory'
+    : Config::getSearchURL(false);
 $script = '';
 $generated = false;
 
@@ -39,10 +43,11 @@ echo '<div>';
 echo '<h2 class="mb-1">' . __('NinjaOne automation script', 'ninjaone') . '</h2>';
 echo '<div class="text-muted">' . __('Generate a PowerShell script that runs GLPI Agent portable from NinjaOne.', 'ninjaone') . '</div>';
 echo '</div>';
-echo '<a class="btn btn-outline-secondary" href="' . Config::getSearchURL(false) . '">' . __('Back') . '</a>';
+echo '<a class="btn btn-outline-secondary" href="' . htmlspecialchars($back_url, ENT_QUOTES, 'UTF-8') . '">' . __('Back') . '</a>';
 echo '</div>';
 
-echo '<form method="post" action="ninjaone.script.php">';
+echo '<form method="post" action="ninjaone.script.php' . ($config_id > 0 ? '?config_id=' . $config_id : '') . '">';
+echo '<input type="hidden" name="config_id" value="' . $config_id . '">';
 echo '<div class="card mb-3">';
 echo '<div class="card-header">';
 echo '<h3 class="card-title">' . __('Script variables', 'ninjaone') . '</h3>';

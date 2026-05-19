@@ -89,14 +89,14 @@ linking rules using stable hardware fields such as serial number and UUID.
 The plugin owns the durable NinjaOne-to-GLPI link in:
 
 ```text
-glpi_plugin_ninjaone_devicemappings.ninjaone_device_id -> glpi_computers.id
+glpi_plugin_ninjaone_devicemappings.ninjaone_device_ref -> glpi_computers.id
 ```
 
 The GLPI Agent inventory importer does not know this plugin table, so the first
 match must be made through native GLPI asset identity fields. The intended order
 is:
 
-1. Existing plugin mapping by `ninjaone_device_id`.
+1. Existing plugin mapping by `ninjaone_device_ref`.
 2. GLPI computer serial number.
 3. GLPI computer UUID.
 4. Only then create a new GLPI computer.

@@ -13,8 +13,23 @@ msgstr "NinjaOne Connection"
 msgid "Base URL"
 msgstr "Base URL"
 
-msgid "Scopes"
-msgstr "Scopes"
+msgid "NinjaOne API scopes"
+msgstr "NinjaOne API scopes"
+
+msgid "Monitoring"
+msgstr "Monitoring"
+
+msgid "Management"
+msgstr "Management"
+
+msgid "Control"
+msgstr "Control"
+
+msgid "Aujourd hui : scope Monitoring uniquement. Gestion et Controle plus tard."
+msgstr "Today: Monitoring scope only. Management and Control will come later."
+
+msgid "Un changement a ete detecte, merci de sauvegarder."
+msgstr "A change has been detected, please save."
 
 msgid "Client ID"
 msgstr "Client ID"
@@ -22,8 +37,8 @@ msgstr "Client ID"
 msgid "Client secret"
 msgstr "Client Secret"
 
-msgid "A client secret is stored. Leave this field empty to keep it unchanged."
-msgstr "A client secret is stored. Leave this field empty to keep it unchanged."
+msgid "A client secret is stored. Leave the hidden value unchanged to keep it."
+msgstr "A client secret is stored. Leave the hidden value unchanged to keep it."
 
 msgid "No client secret is stored yet."
 msgstr "No client secret is stored yet."
@@ -66,6 +81,9 @@ msgstr "Run a synchronisation once to discover NinjaOne organisations."
 
 msgid "Map organizations"
 msgstr "Map Organisations"
+
+msgid "Open GLPI asset import rules"
+msgstr "Open GLPI asset import rules"
 
 msgid "Scheduling"
 msgstr "Scheduling"
@@ -132,6 +150,12 @@ msgstr "Advanced synchronisation - GLPI Agent inventory through NinjaOne Automat
 
 msgid "Minimal synchronization - inventory based on NinjaOne"
 msgstr "Minimal synchronisation - inventory based on NinjaOne"
+
+msgid "The NinjaOne inventory mode creates or updates computers from NinjaOne with the name, serial number, last contact and the basic inventory data available through the NinjaOne API."
+msgstr "The NinjaOne inventory mode creates or updates computers from NinjaOne with the name, serial number, last contact and the basic inventory data available through the NinjaOne API."
+
+msgid "The GLPI Agent mode keeps NinjaOne as the link and orchestration source, while GLPI Agent performs the complete GLPI inventory: hardware, operating system, software and the detailed inventory options supported by GLPI."
+msgstr "The GLPI Agent mode keeps NinjaOne as the link and orchestration source, while GLPI Agent performs the complete GLPI inventory: hardware, operating system, software and the detailed inventory options supported by GLPI."
 
 msgid "Open GLPI cron task"
 msgstr "Open GLPI cron task"

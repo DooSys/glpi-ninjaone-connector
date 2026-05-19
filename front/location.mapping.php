@@ -23,8 +23,8 @@ function plugin_ninjaone_get_location_entity(int $config_id, int $organization_i
         'SELECT' => ['entities_id'],
         'FROM'   => 'glpi_plugin_ninjaone_organizationmappings',
         'WHERE'  => [
-            'plugin_ninjaone_configs_id' => $config_id,
-            'ninjaone_organization_id'   => $organization_id,
+            'config_ref' => $config_id,
+            'ninjaone_organization_ref'   => $organization_id,
         ],
         'LIMIT' => 1,
     ]);
@@ -57,13 +57,14 @@ if (isset($_POST['save_mapping']) || isset($_POST['create_location'])) {
     $mapping_id = (int) ($_POST['mapping_id'] ?? 0);
     $submitted_location = (string) ($_POST['locations_id'] ?? '');
     $locations_id = $submitted_location === '' ? null : (int) $submitted_location;
+    $was_enabled = (int) ($_POST['was_enabled'] ?? 0) === 1;
     $sync_enabled = isset($_POST['sync_enabled']) ? 1 : 0;
 
     $rows = $DB->request([
         'FROM'  => 'glpi_plugin_ninjaone_locationmappings',
         'WHERE' => [
             'id'                          => $mapping_id,
-            'plugin_ninjaone_configs_id' => $config_id,
+            'config_ref' => $config_id,
         ],
         'LIMIT' => 1,
     ]);
@@ -74,7 +75,7 @@ if (isset($_POST['save_mapping']) || isset($_POST['create_location'])) {
     }
 
     $row = $rows->current();
-    $entity_id = plugin_ninjaone_get_location_entity($config_id, (int) $row['ninjaone_organization_id']);
+    $entity_id = plugin_ninjaone_get_location_entity($config_id, (int) $row['ninjaone_organization_ref']);
 
     if (isset($_POST['create_location'])) {
         $created_id = plugin_ninjaone_create_glpi_location((string) $row['ninjaone_location_name'], $entity_id);
@@ -97,6 +98,9 @@ if (isset($_POST['save_mapping']) || isset($_POST['create_location'])) {
             false,
             WARNING
         );
+    } elseif (!$was_enabled && $locations_id !== null) {
+        $sync_enabled = 1;
+        Session::addMessageAfterRedirect(__('NinjaOne location mapping saved.', 'ninjaone'));
     } else {
         Session::addMessageAfterRedirect(__('NinjaOne location mapping saved.', 'ninjaone'));
     }
@@ -110,7 +114,7 @@ if (isset($_POST['save_mapping']) || isset($_POST['create_location'])) {
         ],
         [
             'id'                          => $mapping_id,
-            'plugin_ninjaone_configs_id' => $config_id,
+            'config_ref' => $config_id,
         ]
     );
 
@@ -129,12 +133,12 @@ foreach ($location_rows as $location_row) {
 
 $organizations = [];
 $organization_rows = $DB->request([
-    'SELECT' => ['ninjaone_organization_id', 'ninjaone_organization_name', 'entities_id', 'sync_enabled'],
+    'SELECT' => ['ninjaone_organization_ref', 'ninjaone_organization_name', 'entities_id', 'sync_enabled'],
     'FROM'   => 'glpi_plugin_ninjaone_organizationmappings',
-    'WHERE'  => ['plugin_ninjaone_configs_id' => $config_id],
+    'WHERE'  => ['config_ref' => $config_id],
 ]);
 foreach ($organization_rows as $organization_row) {
-    $organizations[(int) $organization_row['ninjaone_organization_id']] = $organization_row;
+    $organizations[(int) $organization_row['ninjaone_organization_ref']] = $organization_row;
 }
 
 Html::header(
@@ -170,16 +174,16 @@ echo '<div class="col-md-1 text-end">' . __('Actions') . '</div>';
 echo '</div>';
 echo '</div>';
 
-$where = ['plugin_ninjaone_configs_id' => $config_id];
+$where = ['config_ref' => $config_id];
 if (($config->fields['organization_mode'] ?? 'multi') === 'single'
-    && (int) ($config->fields['single_ninjaone_organization_id'] ?? 0) > 0) {
-    $where['ninjaone_organization_id'] = (int) $config->fields['single_ninjaone_organization_id'];
+    && (int) ($config->fields['single_ninjaone_organization_ref'] ?? 0) > 0) {
+    $where['ninjaone_organization_ref'] = (int) $config->fields['single_ninjaone_organization_ref'];
 }
 
 $rows = $DB->request([
     'FROM'  => 'glpi_plugin_ninjaone_locationmappings',
     'WHERE' => $where,
-    'ORDER' => ['ninjaone_organization_id', 'ninjaone_location_name'],
+    'ORDER' => ['ninjaone_organization_ref', 'ninjaone_location_name'],
 ]);
 
 $count = 0;
@@ -189,10 +193,10 @@ foreach ($rows as $row) {
     $row_sync_enabled = (int) $row['sync_enabled'] === 1;
     $mapped_location_id = (int) ($row['locations_id'] ?? 0);
     $has_glpi_location = $mapped_location_id > 0;
-    $organization = $organizations[(int) $row['ninjaone_organization_id']] ?? null;
+    $organization = $organizations[(int) $row['ninjaone_organization_ref']] ?? null;
     $organization_name = is_array($organization)
         ? (string) $organization['ninjaone_organization_name']
-        : (string) $row['ninjaone_organization_id'];
+        : (string) $row['ninjaone_organization_ref'];
     $organization_ready = is_array($organization)
         && (int) $organization['sync_enabled'] === 1
         && $organization['entities_id'] !== null;
@@ -202,16 +206,17 @@ foreach ($rows as $row) {
     echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
     echo '<input type="hidden" name="config_id" value="' . $config_id . '">';
     echo '<input type="hidden" name="mapping_id" value="' . $id . '">';
+    echo '<input type="hidden" name="was_enabled" value="' . ($row_sync_enabled ? '1' : '0') . '">';
     echo '<div class="row g-3 align-items-center">';
 
     echo '<div class="col-md-1">';
-    echo '<input class="form-check-input" type="checkbox" name="sync_enabled" value="1"'
+    echo '<input class="form-check-input ninjaone-sync-checkbox" type="checkbox" name="sync_enabled" value="1"'
         . ($row_sync_enabled ? ' checked' : '') . '>';
     echo '</div>';
 
     echo '<div class="col-md-3">';
     echo '<div class="fw-semibold">' . htmlspecialchars((string) $row['ninjaone_location_name'], ENT_QUOTES, 'UTF-8') . '</div>';
-    echo '<div class="text-muted small">' . __('NinjaOne ID', 'ninjaone') . ': <code>' . (int) $row['ninjaone_location_id'] . '</code></div>';
+    echo '<div class="text-muted small">' . __('NinjaOne ID', 'ninjaone') . ': <code>' . (int) $row['ninjaone_location_ref'] . '</code></div>';
     echo '</div>';
 
     echo '<div class="col-md-3">';
@@ -220,7 +225,7 @@ foreach ($rows as $row) {
     echo '</div>';
 
     echo '<div class="col-md-3">';
-    echo '<select class="form-select" name="locations_id">';
+    echo '<select class="form-select ninjaone-mapping-select" name="locations_id">';
     echo '<option value=""' . (!$has_glpi_location ? ' selected' : '') . '>' . __('Select location', 'ninjaone') . '</option>';
     foreach ($locations as $location_id => $location_name) {
         echo '<option value="' . $location_id . '"'
@@ -269,5 +274,19 @@ echo '</div>';
 
 echo '</div>';
 echo '</div>';
+
+echo '<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".ninjaone-mapping-select").forEach(function (select) {
+        select.addEventListener("change", function () {
+            const form = select.closest("form");
+            const checkbox = form ? form.querySelector(".ninjaone-sync-checkbox") : null;
+            if (checkbox && select.value !== "") {
+                checkbox.checked = true;
+            }
+        });
+    });
+});
+</script>';
 
 Html::footer();

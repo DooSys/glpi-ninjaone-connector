@@ -41,7 +41,7 @@ echo '</tr></thead><tbody>';
 
 $where = [];
 if ($config_id > 0) {
-    $where['plugin_ninjaone_configs_id'] = $config_id;
+    $where['config_ref'] = $config_id;
 }
 
 $rows = $DB->request([

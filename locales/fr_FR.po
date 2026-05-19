@@ -41,8 +41,23 @@ msgstr "Liaisons en attente"
 msgid "Base URL"
 msgstr "URL de base"
 
-msgid "Scopes"
-msgstr "Portées"
+msgid "NinjaOne API scopes"
+msgstr "Portées API NinjaOne"
+
+msgid "Monitoring"
+msgstr "Monitoring"
+
+msgid "Management"
+msgstr "Gestion"
+
+msgid "Control"
+msgstr "Contrôle"
+
+msgid "Aujourd hui : scope Monitoring uniquement. Gestion et Controle plus tard."
+msgstr "Aujourd'hui : scope Monitoring uniquement. Gestion et Contrôle plus tard."
+
+msgid "Un changement a ete detecte, merci de sauvegarder."
+msgstr "Un changement a été détecté, merci de sauvegarder."
 
 msgid "Client ID"
 msgstr "ID client"
@@ -50,8 +65,8 @@ msgstr "ID client"
 msgid "Client secret"
 msgstr "Secret client"
 
-msgid "A client secret is stored. Leave this field empty to keep it unchanged."
-msgstr "Un secret client est enregistré. Laissez ce champ vide pour le conserver."
+msgid "A client secret is stored. Leave the hidden value unchanged to keep it."
+msgstr "Un secret client est enregistré. Laissez la valeur masquée inchangée pour le conserver."
 
 msgid "No client secret is stored yet."
 msgstr "Aucun secret client n'est encore enregistré."
@@ -82,6 +97,9 @@ msgstr "Générer le script NinjaOne"
 
 msgid "Generate NinjaOne automation script"
 msgstr "Générer le script d'automatisation NinjaOne"
+
+msgid "Open GLPI asset import rules"
+msgstr "Ouvrir les règles d'import de nouveau matériel GLPI"
 
 msgid "Organization management"
 msgstr "Gestion des organisations"
@@ -134,8 +152,11 @@ msgstr "Alerte synchro ancienne après"
 msgid "days"
 msgstr "jours"
 
-msgid "Mapping only keeps NinjaOne identity, organization, location, last contact and serial while GLPI Agent updates hardware, OS and software."
-msgstr "Le mode mappage conserve uniquement l'identité NinjaOne, l'organisation, le lieu, le dernier contact et le numéro de série. GLPI Agent met à jour le matériel, l'OS et les logiciels."
+msgid "The NinjaOne inventory mode creates or updates computers from NinjaOne with the name, serial number, last contact and the basic inventory data available through the NinjaOne API."
+msgstr "Le mode inventaire NinjaOne crée ou met à jour les ordinateurs depuis NinjaOne avec le nom, le numéro de série, le dernier contact et les données d'inventaire de base disponibles via l'API NinjaOne."
+
+msgid "The GLPI Agent mode keeps NinjaOne as the link and orchestration source, while GLPI Agent performs the complete GLPI inventory: hardware, operating system, software and the detailed inventory options supported by GLPI."
+msgstr "Le mode GLPI Agent conserve NinjaOne comme source de lien et d'orchestration, tandis que GLPI Agent réalise l'inventaire GLPI complet : matériel, système d'exploitation, logiciels et options d'inventaire détaillées prises en charge par GLPI."
 
 msgid "Scheduling"
 msgstr "Planification"

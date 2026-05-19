@@ -41,8 +41,9 @@ class Config extends CommonDBTM
 
         $name = htmlspecialchars((string) ($this->fields['name'] ?? ''), ENT_QUOTES, 'UTF-8');
         $base_url = htmlspecialchars((string) ($this->fields['base_url'] ?? 'https://eu.ninjarmm.com'), ENT_QUOTES, 'UTF-8');
-        $scopes = htmlspecialchars((string) ($this->fields['scopes'] ?? 'monitoring'), ENT_QUOTES, 'UTF-8');
         $client_id = htmlspecialchars((string) ($this->fields['client_id'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $has_secret = !empty($this->fields['client_secret']);
+        $secret_value = $has_secret ? '********************************' : '';
 
         echo '<tr>';
         echo '<th>' . __('Name') . '</th>';
@@ -60,9 +61,16 @@ class Config extends CommonDBTM
         echo '<td>';
         echo '<input type="text" name="base_url" value="' . $base_url . '" class="form-control">';
         echo '</td>';
-        echo '<th>' . __('Scopes', 'ninjaone') . '</th>';
+        echo '<th>' . __('NinjaOne API scopes', 'ninjaone') . '</th>';
         echo '<td>';
-        echo '<input type="text" name="scopes" value="' . $scopes . '" class="form-control">';
+        echo '<input type="hidden" name="scopes" value="' . self::DEFAULT_SCOPES . '">';
+        echo '<label class="form-check mb-1"><input class="form-check-input" type="checkbox" checked disabled> '
+            . '<span class="form-check-label">' . __('Monitoring', 'ninjaone') . '</span></label>';
+        echo '<label class="form-check mb-1 text-muted"><input class="form-check-input" type="checkbox" disabled> '
+            . '<span class="form-check-label">' . __('Management', 'ninjaone') . '</span></label>';
+        echo '<label class="form-check mb-1 text-muted"><input class="form-check-input" type="checkbox" disabled> '
+            . '<span class="form-check-label">' . __('Control', 'ninjaone') . '</span></label>';
+        echo '<div class="form-text">' . __('Aujourd hui : scope Monitoring uniquement. Gestion et Controle plus tard.', 'ninjaone') . '</div>';
         echo '</td>';
         echo '</tr>';
 
@@ -73,7 +81,7 @@ class Config extends CommonDBTM
         echo '</td>';
         echo '<th>' . __('Client secret', 'ninjaone') . '</th>';
         echo '<td>';
-        echo '<input type="password" name="client_secret" value="" class="form-control" autocomplete="new-password">';
+        echo '<input type="password" name="client_secret" value="' . $secret_value . '" class="form-control" autocomplete="new-password">';
         echo '</td>';
         echo '</tr>';
 
@@ -123,7 +131,10 @@ class Config extends CommonDBTM
             $input['base_url'] = rtrim($input['base_url'], '/');
         }
 
-        if (array_key_exists('client_secret', $input) && $input['client_secret'] === '') {
+        $input['scopes'] = self::normalizeScopes((string) ($input['scopes'] ?? self::DEFAULT_SCOPES));
+
+        if (array_key_exists('client_secret', $input)
+            && ($input['client_secret'] === '' || $input['client_secret'] === '********************************')) {
             unset($input['client_secret']);
         }
 
@@ -132,24 +143,24 @@ class Config extends CommonDBTM
         }
 
         if (isset($input['organization_mode']) && !in_array($input['organization_mode'], ['single', 'multi'], true)) {
-            $input['organization_mode'] = 'multi';
+            $input['organization_mode'] = 'single';
         }
 
         if (isset($input['inventory_mode']) && !in_array($input['inventory_mode'], ['mapping_only', 'full'], true)) {
-            $input['inventory_mode'] = 'mapping_only';
+            $input['inventory_mode'] = 'full';
         }
 
         if (array_key_exists('sync_stale_days', $input)) {
             $input['sync_stale_days'] = max(1, (int) $input['sync_stale_days']);
         }
 
-        if (($input['organization_mode'] ?? 'multi') === 'multi') {
-            $input['single_ninjaone_organization_id'] = null;
+        if (($input['organization_mode'] ?? 'single') === 'multi') {
+            $input['single_ninjaone_organization_ref'] = null;
         }
 
-        if (array_key_exists('single_ninjaone_organization_id', $input)
-            && (string) $input['single_ninjaone_organization_id'] === '') {
-            $input['single_ninjaone_organization_id'] = null;
+        if (array_key_exists('single_ninjaone_organization_ref', $input)
+            && (string) $input['single_ninjaone_organization_ref'] === '') {
+            $input['single_ninjaone_organization_ref'] = null;
         }
 
         return $input;
@@ -160,5 +171,16 @@ class Config extends CommonDBTM
         global $CFG_GLPI;
 
         return rtrim($CFG_GLPI['url_base'], '/') . '/plugins/ninjaone/front/oauth.callback.php';
+    }
+
+    public const DEFAULT_SCOPES = 'monitoring';
+
+    public static function normalizeScopes(string $scopes): string
+    {
+        $requested = preg_split('/\s+/', strtolower(trim($scopes))) ?: [];
+        $allowed = ['monitoring'];
+        $selected = array_values(array_intersect($allowed, $requested));
+
+        return implode(' ', $selected !== [] ? $selected : $allowed);
     }
 }

@@ -102,16 +102,16 @@ final class SyncRunner
 
         $ids = [];
         $iterator = $DB->request([
-            'SELECT' => ['ninjaone_organization_id'],
+            'SELECT' => ['ninjaone_organization_ref'],
             'FROM'   => 'glpi_plugin_ninjaone_organizationmappings',
             'WHERE'  => [
-                'plugin_ninjaone_configs_id' => $configId,
+                'config_ref' => $configId,
                 'sync_enabled'               => 1,
             ],
         ]);
 
         foreach ($iterator as $row) {
-            $ids[] = (int) $row['ninjaone_organization_id'];
+            $ids[] = (int) $row['ninjaone_organization_ref'];
         }
 
         return array_values(array_unique($ids));
@@ -137,7 +137,7 @@ final class SyncRunner
         }
 
         $DB->insert('glpi_plugin_ninjaone_synclogs', [
-            'plugin_ninjaone_configs_id' => $configId > 0 ? $configId : null,
+            'config_ref' => $configId > 0 ? $configId : null,
             'started_at'     => $startedAt,
             'ended_at'      => date('Y-m-d H:i:s'),
             'status'        => $result->status(),
@@ -167,8 +167,8 @@ final class SyncRunner
             $existing = $DB->request([
                 'FROM'  => 'glpi_plugin_ninjaone_organizationmappings',
                 'WHERE' => [
-                    'plugin_ninjaone_configs_id' => $configId,
-                    'ninjaone_organization_id'   => $organizationId,
+                    'config_ref' => $configId,
+                    'ninjaone_organization_ref'   => $organizationId,
                 ],
                 'LIMIT' => 1,
             ]);
@@ -186,8 +186,8 @@ final class SyncRunner
                 $result->updated++;
             } else {
                 $DB->insert('glpi_plugin_ninjaone_organizationmappings', [
-                    'plugin_ninjaone_configs_id' => $configId,
-                    'ninjaone_organization_id'   => $organizationId,
+                    'config_ref' => $configId,
+                    'ninjaone_organization_ref'   => $organizationId,
                     'ninjaone_organization_name' => $organizationName,
                     'entities_id'                => null,
                     'sync_enabled'               => 0,
@@ -218,8 +218,8 @@ final class SyncRunner
         $existing = $DB->request([
             'FROM'  => 'glpi_plugin_ninjaone_locationmappings',
             'WHERE' => [
-                'plugin_ninjaone_configs_id' => $configId,
-                'ninjaone_location_id'       => $locationId,
+                'config_ref' => $configId,
+                'ninjaone_location_ref'       => $locationId,
             ],
             'LIMIT' => 1,
         ]);
@@ -228,7 +228,7 @@ final class SyncRunner
         if (count($existing) > 0) {
             $row = $existing->current();
             $data = [
-                'ninjaone_organization_id' => $organizationId,
+                'ninjaone_organization_ref' => $organizationId,
                 'ninjaone_location_name'   => $locationName,
             ];
             if ($entityId !== null && $row['entities_id'] === null) {
@@ -240,9 +240,9 @@ final class SyncRunner
         }
 
         $DB->insert('glpi_plugin_ninjaone_locationmappings', [
-            'plugin_ninjaone_configs_id' => $configId,
-            'ninjaone_organization_id'   => $organizationId,
-            'ninjaone_location_id'       => $locationId,
+            'config_ref' => $configId,
+            'ninjaone_organization_ref'   => $organizationId,
+            'ninjaone_location_ref'       => $locationId,
             'ninjaone_location_name'     => $locationName,
             'locations_id'               => null,
             'entities_id'                => $entityId,
@@ -263,8 +263,8 @@ final class SyncRunner
             'SELECT' => ['entities_id'],
             'FROM'   => 'glpi_plugin_ninjaone_organizationmappings',
             'WHERE'  => [
-                'plugin_ninjaone_configs_id' => $configId,
-                'ninjaone_organization_id'   => $organizationId,
+                'config_ref' => $configId,
+                'ninjaone_organization_ref'   => $organizationId,
             ],
             'LIMIT' => 1,
         ]);
@@ -297,8 +297,8 @@ final class SyncRunner
             $existing = $DB->request([
                 'FROM'  => 'glpi_plugin_ninjaone_devicemappings',
                 'WHERE' => [
-                    'plugin_ninjaone_configs_id' => $configId,
-                    'ninjaone_device_id'         => $deviceId,
+                    'config_ref' => $configId,
+                    'ninjaone_device_ref'         => $deviceId,
                 ],
                 'LIMIT' => 1,
             ]);
@@ -308,8 +308,8 @@ final class SyncRunner
                 $DB->update(
                     'glpi_plugin_ninjaone_devicemappings',
                     [
-                        'ninjaone_organization_id' => $organizationId,
-                        'ninjaone_location_id'     => $locationId,
+                        'ninjaone_organization_ref' => $organizationId,
+                        'ninjaone_location_ref'     => $locationId,
                         'last_seen_at'             => $lastSeenAt,
                         'last_sync_at'             => $now,
                         'last_payload_hash'        => $payloadHash,
@@ -322,10 +322,10 @@ final class SyncRunner
             }
 
             $DB->insert('glpi_plugin_ninjaone_devicemappings', [
-                'plugin_ninjaone_configs_id' => $configId,
-                'ninjaone_device_id'         => $deviceId,
-                'ninjaone_organization_id'   => $organizationId,
-                'ninjaone_location_id'       => $locationId,
+                'config_ref' => $configId,
+                'ninjaone_device_ref'         => $deviceId,
+                'ninjaone_organization_ref'   => $organizationId,
+                'ninjaone_location_ref'       => $locationId,
                 'computers_id'               => 0,
                 'last_seen_at'               => $lastSeenAt,
                 'last_sync_at'               => $now,
@@ -419,8 +419,8 @@ final class SyncRunner
             'SELECT' => ['entities_id'],
             'FROM'   => 'glpi_plugin_ninjaone_organizationmappings',
             'WHERE'  => [
-                'plugin_ninjaone_configs_id' => $configId,
-                'ninjaone_organization_id'   => $organizationId,
+                'config_ref' => $configId,
+                'ninjaone_organization_ref'   => $organizationId,
                 'sync_enabled'               => 1,
             ],
             'LIMIT' => 1,
@@ -443,8 +443,8 @@ final class SyncRunner
             'SELECT' => ['computers_id'],
             'FROM'   => 'glpi_plugin_ninjaone_devicemappings',
             'WHERE'  => [
-                'plugin_ninjaone_configs_id' => $configId,
-                'ninjaone_device_id'         => $deviceId,
+                'config_ref' => $configId,
+                'ninjaone_device_ref'         => $deviceId,
             ],
             'LIMIT' => 1,
         ]);
@@ -855,8 +855,8 @@ final class SyncRunner
             'SELECT' => ['locations_id'],
             'FROM'   => 'glpi_plugin_ninjaone_locationmappings',
             'WHERE'  => [
-                'plugin_ninjaone_configs_id' => $configId,
-                'ninjaone_location_id'       => (int) $device['locationId'],
+                'config_ref' => $configId,
+                'ninjaone_location_ref'       => (int) $device['locationId'],
                 'sync_enabled'               => 1,
             ],
             'LIMIT' => 1,
@@ -1093,15 +1093,15 @@ final class SyncRunner
 
         $map = [];
         $rows = $DB->request([
-            'SELECT' => ['ninjaone_device_id', 'computers_id'],
+            'SELECT' => ['ninjaone_device_ref', 'computers_id'],
             'FROM'   => 'glpi_plugin_ninjaone_devicemappings',
             'WHERE'  => [
-                'plugin_ninjaone_configs_id' => $configId,
+                'config_ref' => $configId,
             ],
         ]);
 
         foreach ($rows as $row) {
-            $deviceId = (int) $row['ninjaone_device_id'];
+            $deviceId = (int) $row['ninjaone_device_ref'];
             $computerId = (int) $row['computers_id'];
             if ($deviceId > 0 && $computerId > 0) {
                 $map[$deviceId] = $computerId;
@@ -1117,15 +1117,15 @@ final class SyncRunner
 
         $payloads = [];
         $rows = $DB->request([
-            'SELECT' => ['ninjaone_device_id', 'last_payload_json'],
+            'SELECT' => ['ninjaone_device_ref', 'last_payload_json'],
             'FROM'   => 'glpi_plugin_ninjaone_devicemappings',
             'WHERE'  => [
-                'plugin_ninjaone_configs_id' => $configId,
+                'config_ref' => $configId,
             ],
         ]);
 
         foreach ($rows as $row) {
-            $deviceId = (int) $row['ninjaone_device_id'];
+            $deviceId = (int) $row['ninjaone_device_ref'];
             $payload = json_decode((string) ($row['last_payload_json'] ?? ''), true);
             if ($deviceId > 0 && is_array($payload)) {
                 $payloads[$deviceId] = $payload;
@@ -1142,8 +1142,8 @@ final class SyncRunner
         $existing = $DB->request([
             'FROM'  => 'glpi_plugin_ninjaone_devicemappings',
             'WHERE' => [
-                'plugin_ninjaone_configs_id' => $configId,
-                'ninjaone_device_id'         => $deviceId,
+                'config_ref' => $configId,
+                'ninjaone_device_ref'         => $deviceId,
             ],
             'LIMIT' => 1,
         ]);
@@ -2222,15 +2222,15 @@ final class SyncRunner
         $existing = $DB->request([
             'FROM'  => 'glpi_plugin_ninjaone_devicemappings',
             'WHERE' => [
-                'plugin_ninjaone_configs_id' => $configId,
-                'ninjaone_device_id'         => $deviceId,
+                'config_ref' => $configId,
+                'ninjaone_device_ref'         => $deviceId,
             ],
             'LIMIT' => 1,
         ]);
 
         $data = [
-            'ninjaone_organization_id' => $organizationId,
-            'ninjaone_location_id'     => $locationId,
+            'ninjaone_organization_ref' => $organizationId,
+            'ninjaone_location_ref'     => $locationId,
             'computers_id'             => $computerId,
             'last_seen_at'             => $lastSeenAt,
             'last_sync_at'             => $now,
@@ -2249,8 +2249,8 @@ final class SyncRunner
         }
 
         $DB->insert('glpi_plugin_ninjaone_devicemappings', $data + [
-            'plugin_ninjaone_configs_id' => $configId,
-            'ninjaone_device_id'         => $deviceId,
+            'config_ref' => $configId,
+            'ninjaone_device_ref'         => $deviceId,
             'first_sync_at'              => $now,
         ]);
     }

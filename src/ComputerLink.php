@@ -111,7 +111,7 @@ final class ComputerLink extends CommonDBTM
         echo '<div>';
         echo '<h3 class="card-title mb-1">' . __('NinjaOne', 'ninjaone') . '</h3>';
         echo '<div class="text-muted small">' . __('NinjaOne ID', 'ninjaone') . ': <code>'
-            . (int) $mapping['ninjaone_device_id'] . '</code></div>';
+            . (int) $mapping['ninjaone_device_ref'] . '</code></div>';
         echo '</div>';
         echo '<div class="d-flex flex-wrap align-items-center gap-2">';
         self::showSyncHealthBadge($mapping);
@@ -243,7 +243,7 @@ final class ComputerLink extends CommonDBTM
         $mapping = $rows->current();
         $configs = $DB->request([
             'FROM'  => 'glpi_plugin_ninjaone_configs',
-            'WHERE' => ['id' => (int) $mapping['plugin_ninjaone_configs_id']],
+            'WHERE' => ['id' => (int) $mapping['config_ref']],
             'LIMIT' => 1,
         ]);
         if (count($configs) > 0) {
@@ -259,7 +259,7 @@ final class ComputerLink extends CommonDBTM
 
     private static function getNinjaOneUrl(array $mapping): string
     {
-        $device_id = (int) ($mapping['ninjaone_device_id'] ?? 0);
+        $device_id = (int) ($mapping['ninjaone_device_ref'] ?? 0);
         $base_url = rtrim((string) ($mapping['base_url'] ?? ''), '/');
 
         return $device_id > 0 && $base_url !== ''

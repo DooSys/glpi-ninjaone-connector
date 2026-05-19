@@ -8,7 +8,7 @@ use GlpiPlugin\Ninjaone\OrganizationMapping;
 use GlpiPlugin\Ninjaone\ComputerLink;
 use GlpiPlugin\Ninjaone\SyncLog;
 
-define('PLUGIN_NINJAONE_VERSION', '0.1.41-dev');
+define('PLUGIN_NINJAONE_VERSION', '1.1.0');
 define('PLUGIN_NINJAONE_MIN_GLPI_VERSION', '11.0.0');
 define('PLUGIN_NINJAONE_MAX_GLPI_VERSION', '11.99.99');
 

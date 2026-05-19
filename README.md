@@ -1,41 +1,54 @@
-<img width="587" height="582" alt="image" src="https://github.com/user-attachments/assets/a84b9853-0af8-4daf-b8a4-c2adbc430bfb" />
+<p align="center">
+  <img src="resources/images/glpi-ninjaone-connector-logo.png" alt="GLPI NinjaOne Connector" width="420">
+</p>
 
 # GLPI NinjaOne Connector
 
-Plugin GLPI 11 permettant de connecter NinjaOne a GLPI pour decouvrir les organisations, mapper les environnements et synchroniser les postes dans les assets natifs GLPI.
+GLPI NinjaOne Connector is a GLPI 11 plugin that links NinjaOne devices to native GLPI assets. It discovers NinjaOne organizations and locations, lets administrators map them explicitly to GLPI entities and locations, and synchronizes computers without turning NinjaOne into the GLPI source of truth.
 
-Le plugin est concu pour garder GLPI comme referentiel ITSM / asset management, tout en utilisant NinjaOne comme source RMM et comme point d'automatisation.
+Repository: [DooSys/glpi-ninjaone-connector](https://github.com/DooSys/glpi-ninjaone-connector)
 
-## Fonctions principales
+## Purpose
 
-- Connexion a NinjaOne via une application API.
-- Tableau de bord avec vignettes : connexions declarees, connexions actives, organisations actives, lieux mappes, ordinateurs lies et liaisons en attente.
-- Decouverte des organisations et locations NinjaOne.
-- Mode organisation unique ou multi-organisation.
-- Mapping explicite des organisations NinjaOne vers les entites GLPI.
-- Mapping explicite des locations NinjaOne vers les lieux GLPI.
-- Creation et mise a jour des ordinateurs GLPI natifs.
-- Deux modes de synchronisation d'inventaire :
-  - **Synchronisation avancee** : GLPI Agent portable est lance via NinjaOne Automation et GLPI Agent reste la source d'inventaire materiel, OS et logiciels.
-  - **Synchronisation minimale** : l'inventaire est base sur les donnees NinjaOne.
-- Onglet NinjaOne sur les fiches ordinateur liees.
-- Bouton direct pour ouvrir l'ordinateur dans NinjaOne.
-- Logs de synchronisation et purge automatique des anciens logs.
-- Synchronisation automatique deux fois par jour, avec bouton de synchronisation forcee.
+The connector is designed around a clear split of responsibilities:
 
-## Prerequis
+- GLPI remains the ITSM and asset management repository.
+- NinjaOne remains the RMM platform and endpoint orchestration source.
+- The plugin owns the durable relationship between NinjaOne device IDs and GLPI computers.
+- Synchronization is explicit: organizations and locations must be reviewed and enabled before assets are imported.
+
+## Features
+
+- NinjaOne API connection using a Services API / Client Credentials application.
+- Monitoring-only NinjaOne OAuth scope in the current release. Management and Control are displayed as future features but cannot be enabled yet.
+- Dashboard cards for declared connections, active connections, active organizations, mapped locations, linked computers and pending links.
+- NinjaOne organization discovery.
+- Single-organization and multi-organization modes.
+- Explicit organization-to-GLPI-entity mapping.
+- Explicit NinjaOne location-to-GLPI-location mapping.
+- Native GLPI computer creation and update.
+- Two inventory modes:
+  - Minimal synchronization: GLPI computers are updated from the data available through NinjaOne APIs and reports.
+  - Advanced synchronization: NinjaOne is used as the link and orchestration source, while GLPI Agent portable performs the full hardware, OS and software inventory.
+- NinjaOne tab and summary block on linked GLPI computers.
+- Direct button to open the device in NinjaOne.
+- Manual synchronization buttons.
+- GLPI automatic actions for scheduled synchronization and log purge.
+- PowerShell script generator for NinjaOne Automation when using GLPI Agent portable inventory.
+- Link to GLPI asset import rules from the inventory source section.
+
+## Requirements
 
 - GLPI 11.x.
-- PHP 8.2 ou superieur.
-- Extensions PHP : `curl`, `json`, `openssl`.
-- Une instance NinjaOne accessible.
-- Une application API NinjaOne avec les droits de lecture necessaires.
-- Acces HTTPS sortant du serveur GLPI vers NinjaOne.
-- Droits administrateur GLPI pour installer et configurer le plugin.
+- PHP 8.2 or newer.
+- PHP extensions: `curl`, `json`, `openssl`.
+- Outbound HTTPS access from the GLPI server to the NinjaOne instance.
+- A NinjaOne Services API application using Client Credentials.
+- GLPI administrator rights to install and configure the plugin.
 
-## Installation rapide
+## Installation
 
-1. Dezipper le plugin dans le repertoire `marketplace` de GLPI :
+Copy or extract the plugin into the GLPI `marketplace` directory:
 
 ```text
 GLPI/
@@ -48,210 +61,193 @@ GLPI/
       locales/
 ```
 
-2. Aller dans `Configuration > Plugins`.
-3. Installer puis activer **NinjaOne connector**.
-4. Ouvrir la page de configuration du plugin.
+Then:
 
-## Configuration NinjaOne
+1. Open `Setup > Plugins` in GLPI.
+2. Install and enable **NinjaOne connector**.
+3. Open the plugin configuration page.
+4. Add a NinjaOne connection.
 
-Dans NinjaOne, creer une application API dediee au connecteur GLPI.
+The plugin also works when exposed from `/plugins/ninjaone/`; the bootstrap file detects common GLPI plugin paths.
 
-Configuration recommandee :
+## NinjaOne API Setup
 
-- Type d'application : `Services API` ou `API Services`.
-- Mode d'authentification : `Client Credentials`.
-- Scopes : au minimum les droits de lecture/inventaire necessaires, selon votre tenant NinjaOne.
-- Conserver le `Client ID`.
-- Generer et conserver le `Client secret`.
-- Noter l'URL de base de votre region NinjaOne, par exemple :
+Create a dedicated NinjaOne API application for the connector.
+
+Recommended settings:
+
+- Application type: `Services API` / `API Services`.
+- Authentication mode: `Client Credentials`.
+- Scope: `Monitoring`.
+- Keep the generated `Client ID` and `Client secret`.
+- Use the base URL for your NinjaOne region, for example:
 
 ```text
 https://eu.ninjarmm.com
 ```
 
-Si NinjaOne demande une URI de redirection OAuth, utiliser :
+If NinjaOne requires an OAuth redirect URI, use one of the following depending on your GLPI deployment:
 
 ```text
-https://votre-glpi.example/marketplace/ninjaone/front/oauth.callback.php
+https://your-glpi.example/marketplace/ninjaone/front/oauth.callback.php
+https://your-glpi.example/plugins/ninjaone/front/oauth.callback.php
 ```
-<img width="686" height="487" alt="image" src="https://github.com/user-attachments/assets/0aa90821-f13c-455a-9d66-eeed5c25ba96" />
 
-Adaptez le chemin si votre instance expose les plugins via `/plugins/ninjaone/`.
+## GLPI Connection
 
-## Connexion GLPI
+In GLPI, open the plugin page and choose **Add a NinjaOne connection**.
 
-Dans GLPI, ouvrir la page du plugin puis cliquer sur **Ajouter une connexion NinjaOne**.
-<img width="1624" height="156" alt="image" src="https://github.com/user-attachments/assets/60bed12a-a059-4cf3-a3b1-8be88ca8c0c1" />
+Fill in:
 
-Renseigner :
+- connection name;
+- NinjaOne base URL;
+- Client ID;
+- Client secret;
+- redirect URL if required;
+- active/inactive state.
 
-- nom de la connexion ;
-- URL de base NinjaOne ;
-- scopes ;
-- `Client ID` ;
-- `Client secret` ;
-- URL de redirection si necessaire ;
-- etat actif ou inactif.
-<img width="1634" height="480" alt="image" src="https://github.com/user-attachments/assets/9361e663-d3b1-4f02-bbf3-4f7f6a67b676" />
+The current release sends only the `monitoring` scope. `Management` and `Control` are intentionally disabled in the interface and reserved for future features.
 
-Le bloc **Connexion NinjaOne** permet ensuite de :
+After saving the connection, use the configuration page to:
 
-- sauvegarder la connexion ;
-- tester la connexion API ;
-- lancer une synchronisation manuelle.
-<img width="685" height="139" alt="image" src="https://github.com/user-attachments/assets/328cc14a-8f4e-4d41-a5ff-5bd0ca8e31a6" />
+- test the API connection;
+- run a manual synchronization;
+- configure organization mode;
+- configure inventory source;
+- inspect logs and payloads.
 
-## Organisations
+## Organization Mapping
 
-Le plugin ne synchronise pas automatiquement toutes les organisations NinjaOne.
+The plugin never imports every NinjaOne organization automatically.
 
-La sequence recommandee est :
+Recommended sequence:
 
-1. Creer la connexion NinjaOne.
-2. Lancer une premiere synchronisation pour decouvrir les organisations.
-3. Choisir le mode d'organisation.
-4. Mapper les organisations vers les entites GLPI.
-5. Activer uniquement les organisations a synchroniser.
+1. Create and save the NinjaOne connection.
+2. Run a first synchronization to discover organizations and locations.
+3. Choose single-organization or multi-organization mode.
+4. Map NinjaOne organizations to GLPI entities.
+5. Enable only the organizations that should synchronize.
 
-Deux modes sont disponibles :
+Newly discovered organizations are disabled by default. An administrator must explicitly map and enable them.
 
-- **Organisation unique** : une seule organisation NinjaOne est associee a une entite GLPI.
-- **Multi-organisation** : plusieurs organisations NinjaOne peuvent etre mappees separement vers des entites GLPI.
+### Single-Organization Mode
 
-En mode multi-organisation, les boutons **Mapper les organisations** et **Mapper les lieux** apparaissent quand des organisations ont ete decouvertes.
+One NinjaOne organization is selected directly from the connection configuration and mapped to one GLPI entity.
 
-Les organisations nouvellement decouvertes sont creees desactivees par defaut. Elles doivent etre explicitement activees par un administrateur.
+### Multi-Organization Mode
 
-## Mapping des lieux
+Several NinjaOne organizations can be mapped separately. The dedicated mapping page lets an administrator bulk-enable, disable, and assign GLPI entities.
 
-Les locations NinjaOne peuvent etre associees a des lieux GLPI.
+## Location Mapping
 
-Le mapping des lieux sert notamment a renseigner le champ lieu des ordinateurs GLPI lors de la synchronisation. Un lieu peut etre selectionne manuellement ou cree depuis la page de mapping lorsque l'organisation parent est deja associee a une entite GLPI.
-<img width="1632" height="659" alt="image" src="https://github.com/user-attachments/assets/e277cfe1-62d1-4b38-87c0-acfdc988c959" />
+NinjaOne locations can be mapped to GLPI locations.
 
-## Source d'inventaire
+When an organization is mapped to a GLPI entity, the location mapping page can also create a new GLPI location from the NinjaOne location name. Selecting a GLPI location automatically enables the mapping when it was previously disabled.
 
-Le bloc **Source d'inventaire** permet de choisir le comportement du connecteur.
+## Inventory Modes
 
-### Synchronisation avancee
+### Minimal Synchronization
 
-Libelle dans GLPI :
+In minimal synchronization mode, the plugin creates or updates GLPI computers from NinjaOne data:
+
+- name;
+- serial number and asset identifiers when available;
+- last contact / last inventory dates;
+- manufacturer, model and basic hardware fields where available;
+- selected enriched report data when the tenant exposes it.
+
+This mode is useful when NinjaOne should be the practical inventory source for a limited data set.
+
+### Advanced Synchronization With GLPI Agent Portable
+
+In advanced synchronization mode:
+
+- NinjaOne identifies and orchestrates the endpoint.
+- The plugin keeps the NinjaOne-to-GLPI mapping.
+- GLPI Agent portable is run through NinjaOne Automation.
+- GLPI Agent performs the full GLPI inventory and sends it to GLPI.
+
+The plugin provides a NinjaOne Automation script generator. The generated PowerShell script downloads or reuses a GLPI Agent portable ZIP package, extracts it only when needed, runs `glpi-inventory`, and uploads the result with `glpi-injector`.
+
+This mode avoids installing a permanent additional agent on endpoints while preserving GLPI Agent inventory quality.
+
+## GLPI Asset Import Rules
+
+The inventory source section includes a direct shortcut to GLPI asset import rules:
 
 ```text
-Synchronisation avancee - l'inventaire GLPI Agent via NinjaOne Automation
+front/ruleimportasset.php
 ```
 
-Dans ce mode :
+Use these rules to control how incoming GLPI Agent inventory is matched to existing GLPI assets.
 
-- NinjaOne sert a identifier le poste, l'organisation, le lieu et le dernier contact.
-- GLPI Agent portable est lance via NinjaOne Automation.
-- GLPI Agent reste responsable de l'inventaire materiel, OS et logiciels.
-- Le plugin expose un generateur de script PowerShell pour NinjaOne Automation.
+## Scheduled Tasks
 
-Ce mode est recommande si vous voulez garder une qualite d'inventaire GLPI Agent sans installer un agent permanent sur chaque poste.
-En activant ce mode le bouton **Générer le script d'automation NinjaOne** apparait, il vous permet de preparer les variables pour créer un script PowerShell qui pourra être executé ou planifié comme tâche d'automation sur NinjaOne. Pour eviter d'installer un agent supplementaire sur un poste client ce mode de fonctionnement telecharge depuis la source de votre choix le client portable de l'agent GLPI et execute simple un inventaire et un envoi sur votre serveur glpi du resultat pour faire l'association avec equipement.
+The plugin registers two GLPI automatic actions.
 
-<img width="1621" height="573" alt="image" src="https://github.com/user-attachments/assets/0aba7b3f-bd52-46ea-a324-53892c820d9a" />
+### `NinjaoneSync`
 
-### Synchronisation minimale
+- Class: `GlpiPlugin\Ninjaone\Cron\NinjaOneSync`.
+- Method: `cronNinjaoneSync`.
+- Frequency: every 12 hours.
+- Purpose: synchronize due active NinjaOne connector configurations.
 
-Libelle dans GLPI :
+### `NinjaoneLogPurge`
 
-```text
-Synchronisation minimale - l'inventaire base sur NinjaOne
-```
+- Class: `GlpiPlugin\Ninjaone\Cron\NinjaOneLogPurge`.
+- Method: `cronNinjaoneLogPurge`.
+- Frequency: every 3 days.
+- Retention: deletes synchronization logs older than 30 days.
 
-Dans ce mode :
-
-- le plugin utilise les donnees NinjaOne pour creer ou mettre a jour les ordinateurs GLPI ;
-- les donnees disponibles dependent des endpoints et rapports NinjaOne accessibles sur le tenant.
-
-## Synchronisation automatique et logs
-
-Le plugin declare deux actions automatiques GLPI.
-
-### Synchronisation
-
-- Action automatique : `NinjaoneSync`.
-- Classe : `GlpiPlugin\Ninjaone\Cron\NinjaOneSync`.
-- Methode : `cronNinjaoneSync`.
-- Frequence : toutes les 12 heures, soit deux fois par jour.
-
-Une synchronisation immediate peut aussi etre forcee :
-
-- depuis la page principale du plugin ;
-- depuis la fiche d'une connexion NinjaOne.
-
-### Purge des logs
-
-- Action automatique : `NinjaoneLogPurge`.
-- Classe : `GlpiPlugin\Ninjaone\Cron\NinjaOneLogPurge`.
-- Methode : `cronNinjaoneLogPurge`.
-- Frequence : tous les 3 jours.
-- Retention : suppression des logs de synchronisation de plus de 30 jours.
-
-La page de configuration donne acces aux logs et aux actions automatiques GLPI associees.
-
-En production, le cron systeme de GLPI doit etre configure correctement, par exemple :
+For production, make sure the GLPI system cron is configured, for example:
 
 ```bash
 php GLPI/front/cron.php
 ```
 
-## Tableau de bord
+## Computer View
 
-La page principale du plugin affiche des vignettes de synthese :
+When a GLPI computer is linked to a NinjaOne device, the plugin adds NinjaOne information to the computer form:
 
-- connexions declarees ;
-- connexions actives ;
-- organisations actives ;
-- lieux mappes ;
-- ordinateurs lies ;
-- liaisons en attente.
+- NinjaOne device ID;
+- technical synchronization status;
+- inventory source;
+- first synchronization date;
+- last synchronization date;
+- last NinjaOne contact;
+- connector configuration used for the link;
+- direct **Open in NinjaOne** button.
 
-Sous ces vignettes, l'administrateur peut :
+The status badge focuses on the mapping health of the current computer: mapping error, pending link, linked through GLPI Agent, NinjaOne inventory mode, or stale synchronization.
 
-- ajouter une connexion NinjaOne ;
-- lancer une synchronisation immediate si au moins une connexion existe.
+## Uninstall
 
-## Fiche ordinateur
+Uninstall removes the plugin automatic actions and drops the plugin tables:
 
-Lorsqu'un ordinateur GLPI est lie a un device NinjaOne, le plugin ajoute un bloc et un onglet NinjaOne sur la fiche ordinateur.
+- configurations;
+- organization mappings;
+- location mappings;
+- device mappings;
+- synchronization logs.
 
-Le bloc affiche notamment :
+Native GLPI computers are not deleted during uninstall.
 
-- l'ID NinjaOne ;
-- l'etat de liaison ;
-- la derniere synchronisation ;
-- le dernier contact NinjaOne ;
-- la configuration utilisee.
+## Security Notes
 
-Un bouton **Ouvrir dans NinjaOne** permet d'ouvrir directement la fiche du device dans NinjaOne.
-<img width="1255" height="375" alt="image" src="https://github.com/user-attachments/assets/229de702-0559-4455-a7f4-a807e3f7707f" />
+- Restrict plugin access to trusted GLPI administrators.
+- Use HTTPS between GLPI, administrators and NinjaOne.
+- Limit the NinjaOne API application to the current Monitoring scope.
+- Protect database access to the plugin tables.
+- NinjaOne secrets and tokens are stored in plugin tables and should be handled as sensitive data.
 
-La pastille d'etat est volontairement centree sur le mapping de l'ordinateur :
+## Known Limitations
 
-- erreur de liaison si le mapping de ce poste est en echec ;
-- liaison en attente si le poste n'est pas encore correctement associe ;
-- lie a NinjaOne en mode GLPI Agent ;
-- inventaire NinjaOne en mode synchronisation minimale ;
-- synchro ancienne uniquement en mode inventaire NinjaOne, selon le seuil configure.
+- NinjaOne deletions do not automatically delete GLPI assets.
+- NinjaOne alerts do not create GLPI tickets in the current release.
+- Management and Control scopes are reserved for future features.
+- Application-level encryption of stored NinjaOne secrets should be hardened before broad production distribution.
+- Real tenant validation is still recommended before production rollout.
 
-## Securite
-
-- Restreindre l'acces au plugin aux administrateurs GLPI autorises.
-- Restreindre l'acces base de donnees aux comptes techniques strictement necessaires.
-- Les secrets NinjaOne (`client_secret`, jetons OAuth) sont stockes dans les tables du plugin.
-- Utiliser HTTPS entre GLPI, les navigateurs administrateurs et NinjaOne.
-- Verifier les scopes NinjaOne pour n'accorder que les permissions necessaires.
-
-## Limites connues
-
-- Les suppressions NinjaOne ne suppriment pas automatiquement les assets GLPI.
-- Les tickets GLPI depuis les alertes NinjaOne ne sont pas crees automatiquement.
-- Le chiffrement applicatif des secrets NinjaOne reste a durcir avant une diffusion large.
-- Une validation sur instance GLPI 11 et tenant NinjaOne reel est recommandee avant production.
-
-## Licence
+## License
 
 GPL-3.0-or-later.
