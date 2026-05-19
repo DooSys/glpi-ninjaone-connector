@@ -88,7 +88,7 @@ Renseigner :
 - scopes ;
 - `Client ID` ;
 - `Client secret` ;
-- URI de redirection si necessaire ;
+- URL de redirection si necessaire ;
 - etat actif ou inactif.
 <img width="1634" height="480" alt="image" src="https://github.com/user-attachments/assets/9361e663-d3b1-4f02-bbf3-4f7f6a67b676" />
 
