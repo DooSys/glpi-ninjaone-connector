@@ -134,16 +134,22 @@ Newly discovered organizations are disabled by default. An administrator must ex
 ### Single-Organization Mode
 
 One NinjaOne organization is selected directly from the connection configuration and mapped to one GLPI entity.
+<img width="1391" height="396" alt="image" src="https://github.com/user-attachments/assets/c968ecb5-c290-4c48-9c5a-7f9387cd06f8" />
+
 
 ### Multi-Organization Mode
 
 Several NinjaOne organizations can be mapped separately. The dedicated mapping page lets an administrator bulk-enable, disable, and assign GLPI entities.
+<img width="1198" height="647" alt="image" src="https://github.com/user-attachments/assets/7eeddb16-1056-43e1-abe9-76984cf7765d" />
+
 
 ## Location Mapping
 
 NinjaOne locations can be mapped to GLPI locations.
 
 When an organization is mapped to a GLPI entity, the location mapping page can also create a new GLPI location from the NinjaOne location name. Selecting a GLPI location automatically enables the mapping when it was previously disabled.
+<img width="1216" height="514" alt="image" src="https://github.com/user-attachments/assets/2ab19158-afc3-4837-be6e-f8c6c48b9e02" />
+
 
 ## Inventory Modes
 
@@ -169,6 +175,7 @@ In advanced synchronization mode:
 - GLPI Agent performs the full GLPI inventory and sends it to GLPI.
 
 The plugin provides a NinjaOne Automation script generator. The generated PowerShell script downloads or reuses a GLPI Agent portable ZIP package, extracts it only when needed, runs `glpi-inventory`, and uploads the result with `glpi-injector`.
+<img width="1041" height="524" alt="image" src="https://github.com/user-attachments/assets/bd9175de-284d-4d8e-981f-7d66e0d35e4f" />
 
 This mode avoids installing a permanent additional agent on endpoints while preserving GLPI Agent inventory quality.
 
