@@ -1,7 +1,6 @@
 <p align="center">
   <img src="resources/images/glpi-ninjaone-connector-logo.png" alt="GLPI NinjaOne Connector" width="420">
 </p>
-<div align="center">
 <p align="center">
   <img src="https://img.shields.io/badge/GLPI-11.x-blue?style=for-the-badge&logo=glpi" alt="GLPI 11" />
   <img src="https://img.shields.io/badge/NinjaOne-API-orange?style=for-the-badge" alt="NinjaOne API" />
@@ -14,6 +13,7 @@
   <img src="https://img.shields.io/github/last-commit/DooSys/glpi-ninjaone-connector?style=for-the-badge" alt="Last Commit" />
   <img src="https://img.shields.io/github/issues/DooSys/glpi-ninjaone-connector?style=for-the-badge" alt="Issues" />
 </p>
+
 # GLPI NinjaOne Connector
 
 GLPI NinjaOne Connector is a GLPI 11 plugin that links NinjaOne devices to native GLPI assets. It discovers NinjaOne organizations and locations, lets administrators map them explicitly to GLPI entities and locations, and synchronizes computers without turning NinjaOne into the GLPI source of truth.
