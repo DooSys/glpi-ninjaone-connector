@@ -5,6 +5,7 @@
 # GLPI NinjaOne Connector
 
 GLPI NinjaOne Connector is a GLPI 11 plugin that links NinjaOne devices to native GLPI assets. It discovers NinjaOne organizations and locations, lets administrators map them explicitly to GLPI entities and locations, and synchronizes computers without turning NinjaOne into the GLPI source of truth.
+<img width="1628" height="388" alt="image" src="https://github.com/user-attachments/assets/2be74ae9-07b1-4d8b-a5a3-b2f832243661" />
 
 ## Purpose
 
@@ -90,6 +91,7 @@ If NinjaOne requires an OAuth redirect URI, use one of the following depending o
 https://your-glpi.example/marketplace/ninjaone/front/oauth.callback.php
 https://your-glpi.example/plugins/ninjaone/front/oauth.callback.php
 ```
+<img width="712" height="562" alt="image" src="https://github.com/user-attachments/assets/8a3fbc5c-1b6d-4f02-b610-edbd947a42e7" />
 
 ## GLPI Connection
 
@@ -105,6 +107,7 @@ Fill in:
 - active/inactive state.
 
 The current release sends only the `monitoring` scope. `Management` and `Control` are intentionally disabled in the interface and reserved for future features.
+<img width="1035" height="610" alt="image" src="https://github.com/user-attachments/assets/22106c3c-9e2f-44b1-877c-0747f11e6261" />
 
 After saving the connection, use the configuration page to:
 
