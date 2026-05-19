@@ -1,3 +1,5 @@
+<img width="587" height="582" alt="image" src="https://github.com/user-attachments/assets/a84b9853-0af8-4daf-b8a4-c2adbc430bfb" />
+
 # GLPI NinjaOne Connector
 
 Plugin GLPI 11 permettant de connecter NinjaOne a GLPI pour decouvrir les organisations, mapper les environnements et synchroniser les postes dans les assets natifs GLPI.
