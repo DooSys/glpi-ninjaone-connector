@@ -6,8 +6,6 @@
 
 GLPI NinjaOne Connector is a GLPI 11 plugin that links NinjaOne devices to native GLPI assets. It discovers NinjaOne organizations and locations, lets administrators map them explicitly to GLPI entities and locations, and synchronizes computers without turning NinjaOne into the GLPI source of truth.
 
-Repository: [DooSys/glpi-ninjaone-connector](https://github.com/DooSys/glpi-ninjaone-connector)
-
 ## Purpose
 
 The connector is designed around a clear split of responsibilities:
