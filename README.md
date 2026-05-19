@@ -125,8 +125,7 @@ Les organisations nouvellement decouvertes sont creees desactivees par defaut. E
 Les locations NinjaOne peuvent etre associees a des lieux GLPI.
 
 Le mapping des lieux sert notamment a renseigner le champ lieu des ordinateurs GLPI lors de la synchronisation. Un lieu peut etre selectionne manuellement ou cree depuis la page de mapping lorsque l'organisation parent est deja associee a une entite GLPI.
-<img width="1638" height="666" alt="image" src="https://github.com/user-attachments/assets/0dbb59c9-06d2-4679-8ec2-af1baa3a3a89" />
-
+<img width="1632" height="659" alt="image" src="https://github.com/user-attachments/assets/e277cfe1-62d1-4b38-87c0-acfdc988c959" />
 
 ## Source d'inventaire
 
@@ -148,6 +147,7 @@ Dans ce mode :
 - Le plugin expose un generateur de script PowerShell pour NinjaOne Automation.
 
 Ce mode est recommande si vous voulez garder une qualite d'inventaire GLPI Agent sans installer un agent permanent sur chaque poste.
+En activant ce mode le bouton **Générer le scriptd'automation NinjaOne** apparait, il vous permet de preparer les variables pour crrer un script powerShell qui pourra etre executer ou planifier comme tache d'automation sur NinjaOne. Pour eviter d'installer un agent supplementaire sur un poste client ce mode de fonctionnement telecharge depuis la source de votre choix le client portable de l'agent GLPI et execute simple un inventaire et un envoi sur votre serveur glpi du resultat pour faire l'association avec equipement.
 
 ### Synchronisation minimale
 
