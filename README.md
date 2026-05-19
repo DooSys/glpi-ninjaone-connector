@@ -147,7 +147,9 @@ Dans ce mode :
 - Le plugin expose un generateur de script PowerShell pour NinjaOne Automation.
 
 Ce mode est recommande si vous voulez garder une qualite d'inventaire GLPI Agent sans installer un agent permanent sur chaque poste.
-En activant ce mode le bouton **Générer le scriptd'automation NinjaOne** apparait, il vous permet de preparer les variables pour crrer un script powerShell qui pourra etre executer ou planifier comme tache d'automation sur NinjaOne. Pour eviter d'installer un agent supplementaire sur un poste client ce mode de fonctionnement telecharge depuis la source de votre choix le client portable de l'agent GLPI et execute simple un inventaire et un envoi sur votre serveur glpi du resultat pour faire l'association avec equipement.
+En activant ce mode le bouton **Générer le script d'automation NinjaOne** apparait, il vous permet de preparer les variables pour créer un script PowerShell qui pourra être executé ou planifié comme tâche d'automation sur NinjaOne. Pour eviter d'installer un agent supplementaire sur un poste client ce mode de fonctionnement telecharge depuis la source de votre choix le client portable de l'agent GLPI et execute simple un inventaire et un envoi sur votre serveur glpi du resultat pour faire l'association avec equipement.
+
+<img width="1621" height="573" alt="image" src="https://github.com/user-attachments/assets/0aba7b3f-bd52-46ea-a324-53892c820d9a" />
 
 ### Synchronisation minimale
 
@@ -223,6 +225,7 @@ Le bloc affiche notamment :
 - la configuration utilisee.
 
 Un bouton **Ouvrir dans NinjaOne** permet d'ouvrir directement la fiche du device dans NinjaOne.
+<img width="1255" height="375" alt="image" src="https://github.com/user-attachments/assets/229de702-0559-4455-a7f4-a807e3f7707f" />
 
 La pastille d'etat est volontairement centree sur le mapping de l'ordinateur :
 
